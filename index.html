@@ -37,9 +37,7 @@
       display:flex; align-items:center; justify-content:space-between;
       gap:12px;
     }
-    .brand{
-      display:flex; align-items:center; gap:10px; min-width: 220px;
-    }
+    .brand{display:flex; align-items:center; gap:10px; min-width: 220px;}
     .logo{
       width:38px; height:38px; border-radius:12px;
       background: linear-gradient(135deg, rgba(94,234,212,.25), rgba(96,165,250,.18));
@@ -175,6 +173,43 @@
     }
     audio{width:100%}
     .hide{display:none}
+
+    /* --- Drum machine UI --- */
+    .steps{
+      display:grid;
+      grid-template-columns: 42px repeat(16, 1fr);
+      gap: 6px;
+      align-items:center;
+      margin-top: 10px;
+    }
+    .steps .lab{
+      font-size: 12px;
+      color: var(--muted);
+      text-align:right;
+      padding-right:6px;
+      user-select:none;
+    }
+    .step{
+      height: 20px;
+      border-radius: 8px;
+      border:1px solid var(--bd);
+      background: rgba(255,255,255,.03);
+      cursor:pointer;
+      position:relative;
+    }
+    .step.on{
+      border-color: rgba(96,165,250,.45);
+      background: rgba(96,165,250,.16);
+      box-shadow: 0 0 0 3px rgba(96,165,250,.06) inset;
+    }
+    .step.playhead::after{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius: 10px;
+      border:2px solid rgba(94,234,212,.55);
+      pointer-events:none;
+    }
   </style>
 </head>
 <body>
@@ -208,6 +243,14 @@
             <label class="muted">Accordo</label>
             <select id="chordSelect"></select>
             <button class="btn" id="nextChord">Prossimo</button>
+
+            <!-- NEW: chord audio -->
+            <button class="btn primary" id="playChord">Play</button>
+            <select id="strum">
+              <option value="down">↓ down</option>
+              <option value="up">↑ up</option>
+              <option value="arp">arp</option>
+            </select>
           </div>
           <div class="big" id="chordName">—</div>
           <div class="hint" id="chordHint">Seleziona un accordo e prova a suonarlo a tempo.</div>
@@ -270,6 +313,20 @@
         <input type="range" id="droneVol" min="0" max="1" step="0.01" value="0.18">
       </div>
       <div class="hint">Il drone aiuta l’orecchio: suona scale/accordi sopra una nota fissa.</div>
+
+      <hr style="border:none;border-top:1px solid var(--bd);margin:14px 0">
+
+      <h2>Drum machine (16-step)</h2>
+      <div class="row">
+        <button class="btn primary" id="drumToggle">Start</button>
+        <label class="muted">Swing</label>
+        <input type="range" id="swing" min="0" max="0.6" step="0.01" value="0.10">
+        <label class="muted">Vol</label>
+        <input type="range" id="drumVol" min="0" max="1" step="0.01" value="0.65">
+      </div>
+      <div class="hint">Griglia 16 step: clicca per attivare. Il BPM è lo stesso del metronomo.</div>
+
+      <div class="steps" id="stepGrid"></div>
     </div>
   </section>
 
@@ -511,12 +568,8 @@ function renderChord(name){
 }
 
 function drawFret(f){
-  // f = [E6,A5,D4,G3,B2,E1] in chord charts typically from low E to high E
-  // We'll draw 6 strings vertical, 5 frets horizontal.
   const W = fretCanvas.width, H = fretCanvas.height;
   ctx2d.clearRect(0,0,W,H);
-
-  // bg
   ctx2d.fillStyle = "rgba(0,0,0,.18)";
   ctx2d.fillRect(0,0,W,H);
 
@@ -525,7 +578,6 @@ function drawFret(f){
   const right = W - pad, bottom = H - pad;
   const strings = 6, frets = 5;
 
-  // strings
   ctx2d.strokeStyle = "rgba(255,255,255,.25)";
   ctx2d.lineWidth = 3;
   for(let i=0;i<strings;i++){
@@ -536,7 +588,6 @@ function drawFret(f){
     ctx2d.stroke();
   }
 
-  // frets
   for(let j=0;j<=frets;j++){
     const y = top + (bottom-top) * (j/frets);
     ctx2d.strokeStyle = (j===0) ? "rgba(255,255,255,.50)" : "rgba(255,255,255,.20)";
@@ -547,12 +598,10 @@ function drawFret(f){
     ctx2d.stroke();
   }
 
-  // markers X/0 and dots
   ctx2d.font = "bold 24px ui-sans-serif, system-ui";
   ctx2d.textAlign = "center";
   ctx2d.textBaseline = "middle";
 
-  // Map: f[0]=E6 (leftmost string) ... f[5]=E1 (rightmost string)
   for(let i=0;i<6;i++){
     const x = left + (right-left) * (i/5);
     const v = f[i];
@@ -560,7 +609,7 @@ function drawFret(f){
       ctx2d.fillStyle = "rgba(255,255,255,.85)";
       ctx2d.fillText(v, x, top - 20);
     } else {
-      const fretNum = Number(v); // 1..?
+      const fretNum = Number(v);
       const y = top + (bottom-top) * ((fretNum-0.5)/frets);
       ctx2d.fillStyle = "rgba(94,234,212,.95)";
       ctx2d.beginPath();
@@ -584,6 +633,98 @@ nextChord.addEventListener('click', ()=>{
 // init
 chordSelect.value = getSet()[0];
 renderChord(chordSelect.value);
+
+/* =========================
+   Chord audio (Play/Strum)
+========================= */
+const playChordBtn = document.getElementById('playChord');
+const strumSel = document.getElementById('strum');
+
+// Standard tuning frequencies lowE..highE
+const TUNING = [82.41, 110.00, 146.83, 196.00, 246.94, 329.63];
+const SEMI = Math.pow(2, 1/12);
+
+function stringFretToFreq(stringIndex, fret){
+  return TUNING[stringIndex] * Math.pow(SEMI, fret);
+}
+function chordToFreqs(fingering){
+  const freqs = [];
+  for(let i=0;i<6;i++){
+    const v = fingering[i];
+    if(v === "X") continue;
+    const fret = Number(v);
+    freqs.push(stringFretToFreq(i, fret));
+  }
+  return freqs;
+}
+
+function pluck(ctx, freq, t, out){
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  const f = ctx.createBiquadFilter();
+
+  o.type = 'triangle';
+  o.frequency.setValueAtTime(freq, t);
+  o.detune.setValueAtTime((Math.random()*6-3), t);
+
+  f.type = 'lowpass';
+  f.frequency.setValueAtTime(2200, t);
+  f.Q.setValueAtTime(0.8, t);
+
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.18, t + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.06, t + 0.10);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+
+  o.connect(f).connect(g).connect(out);
+  o.start(t);
+  o.stop(t + 0.6);
+}
+
+let chordBusIn = null;
+let chordOutGain = null;
+function ensureChordBus(){
+  const ctx = ensureAudio();
+  if(chordBusIn) return chordBusIn;
+
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -18;
+  comp.knee.value = 18;
+  comp.ratio.value = 3.5;
+  comp.attack.value = 0.005;
+  comp.release.value = 0.12;
+
+  chordOutGain = ctx.createGain();
+  chordOutGain.gain.value = 0.95;
+
+  comp.connect(chordOutGain).connect(ctx.destination);
+  chordBusIn = comp;
+  return chordBusIn;
+}
+
+function playChordNow(){
+  const ctx = ensureAudio();
+  const busIn = ensureChordBus();
+  const name = chordSelect.value;
+  const fingering = CHORDS[name]?.fingering;
+  if(!fingering) return;
+
+  const freqs = chordToFreqs(fingering);
+  const mode = strumSel.value;
+
+  const bpmVal = Number(bpm.value || 76);
+  const step = 60 / bpmVal / 8; // feel 1/8
+
+  let order = freqs.slice();
+  if(mode === "up") order = order.reverse();
+
+  const t0 = ctx.currentTime + 0.02;
+  order.forEach((fq, idx)=>{
+    const dt = (mode === "arp") ? idx * (step*1.2) : idx * (step*0.5);
+    pluck(ctx, fq, t0 + dt, busIn);
+  });
+}
+playChordBtn.addEventListener('click', playChordNow);
 
 /* =========================
    Trainer: auto-change chord
@@ -620,6 +761,212 @@ startTrainer.addEventListener('click', trainerStart);
 stopTrainer.addEventListener('click', trainerStop);
 
 /* =========================
+   Drum machine 16-step
+========================= */
+const drumToggle = document.getElementById('drumToggle');
+const swing = document.getElementById('swing');
+const drumVol = document.getElementById('drumVol');
+const stepGrid = document.getElementById('stepGrid');
+
+const tracks = ["K","S","H"]; // kick, snare, hat
+const pattern = {
+  K: Array(16).fill(false),
+  S: Array(16).fill(false),
+  H: Array(16).fill(false),
+};
+// default groove
+[0,4,8,12].forEach(i=>pattern.K[i]=true);
+[4,12].forEach(i=>pattern.S[i]=true);
+[2,6,10,14].forEach(i=>pattern.H[i]=true);
+
+let drumIsOn = false;
+let drumStep = 0;
+let nextNoteTime = 0;
+let schedulerTimer = null;
+const lookaheadMs = 25;
+const scheduleAheadSec = 0.12;
+
+let drumMaster = null;
+function ensureDrumBus(){
+  const ctx = ensureAudio();
+  if(drumMaster) return drumMaster;
+  drumMaster = ctx.createGain();
+  drumMaster.gain.value = Number(drumVol.value || 0.65);
+  drumMaster.connect(ctx.destination);
+  return drumMaster;
+}
+drumVol.addEventListener('input', ()=>{ if(drumMaster) drumMaster.gain.value = Number(drumVol.value); });
+
+function kick(t){
+  const ctx = ensureAudio();
+  const out = ensureDrumBus();
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(150, t);
+  o.frequency.exponentialRampToValueAtTime(55, t + 0.08);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.9, t + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+  o.connect(g).connect(out);
+  o.start(t);
+  o.stop(t + 0.14);
+}
+function snare(t){
+  const ctx = ensureAudio();
+  const out = ensureDrumBus();
+  const noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.2, ctx.sampleRate);
+  const data = noiseBuf.getChannelData(0);
+  for(let i=0;i<data.length;i++) data[i] = (Math.random()*2-1);
+
+  const noise = ctx.createBufferSource();
+  noise.buffer = noiseBuf;
+
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 1200;
+
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.35, t + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.11);
+
+  noise.connect(hp).connect(g).connect(out);
+  noise.start(t);
+  noise.stop(t + 0.12);
+
+  // tiny body
+  const o = ctx.createOscillator();
+  const og = ctx.createGain();
+  o.type = 'triangle';
+  o.frequency.setValueAtTime(210, t);
+  og.gain.setValueAtTime(0.0001, t);
+  og.gain.exponentialRampToValueAtTime(0.10, t + 0.004);
+  og.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+  o.connect(og).connect(out);
+  o.start(t);
+  o.stop(t + 0.1);
+}
+function hat(t){
+  const ctx = ensureAudio();
+  const out = ensureDrumBus();
+  const noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.08, ctx.sampleRate);
+  const data = noiseBuf.getChannelData(0);
+  for(let i=0;i<data.length;i++) data[i] = (Math.random()*2-1);
+
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuf;
+
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 9000;
+  bp.Q.value = 0.8;
+
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.22, t + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+
+  src.connect(bp).connect(g).connect(out);
+  src.start(t);
+  src.stop(t + 0.06);
+}
+
+function stepDurationSec(){
+  // 16th note duration = quarter / 4
+  const bpmVal = Number(bpm.value || 120);
+  return (60 / bpmVal) / 4;
+}
+
+function scheduleStep(stepIndex, time){
+  // playhead UI
+  paintPlayhead(stepIndex);
+
+  if(pattern.K[stepIndex]) kick(time);
+  if(pattern.S[stepIndex]) snare(time);
+  if(pattern.H[stepIndex]) hat(time);
+}
+
+function nextStep(){
+  const dur = stepDurationSec();
+  const isEven = (drumStep % 2) === 1; // swing on offbeats (2,4,6... in 1-based)
+  const swingAmt = Number(swing.value || 0);
+  nextNoteTime += dur + (isEven ? dur * swingAmt : 0);
+
+  drumStep = (drumStep + 1) % 16;
+}
+
+function scheduler(){
+  const ctx = ensureAudio();
+  while(nextNoteTime < ctx.currentTime + scheduleAheadSec){
+    scheduleStep(drumStep, nextNoteTime);
+    nextStep();
+  }
+}
+
+function drumStart(){
+  const ctx = ensureAudio();
+  ensureDrumBus();
+  drumIsOn = true;
+  drumToggle.textContent = "Stop";
+  drumStep = 0;
+  nextNoteTime = ctx.currentTime + 0.05;
+  schedulerTimer = setInterval(scheduler, lookaheadMs);
+}
+function drumStop(){
+  drumIsOn = false;
+  drumToggle.textContent = "Start";
+  clearInterval(schedulerTimer);
+  schedulerTimer = null;
+  clearPlayhead();
+}
+
+drumToggle.addEventListener('click', ()=>{
+  if(drumIsOn) drumStop();
+  else drumStart();
+});
+
+// Build grid
+function buildGrid(){
+  stepGrid.innerHTML = "";
+  tracks.forEach(tr=>{
+    const lab = document.createElement('div');
+    lab.className = "lab";
+    lab.textContent = tr;
+    stepGrid.appendChild(lab);
+
+    for(let i=0;i<16;i++){
+      const d = document.createElement('div');
+      d.className = "step" + (pattern[tr][i] ? " on" : "");
+      d.dataset.tr = tr;
+      d.dataset.i = String(i);
+      d.addEventListener('click', ()=>{
+        const t = d.dataset.tr;
+        const idx = Number(d.dataset.i);
+        pattern[t][idx] = !pattern[t][idx];
+        d.classList.toggle('on', pattern[t][idx]);
+      });
+      stepGrid.appendChild(d);
+    }
+  });
+}
+buildGrid();
+
+function clearPlayhead(){
+  document.querySelectorAll('.step.playhead').forEach(el=>el.classList.remove('playhead'));
+}
+function paintPlayhead(stepIndex){
+  clearPlayhead();
+  // mark 3 rows at the same column
+  tracks.forEach((tr, row)=>{
+    // grid index: (row * 17) + 1 + stepIndex  (because label per row)
+    const flatIndex = row * 17 + 1 + stepIndex;
+    const el = stepGrid.children[flatIndex];
+    if(el) el.classList.add('playhead');
+  });
+}
+
+/* =========================
    Tuner (mic + autocorrelation)
 ========================= */
 let micStream=null, analyser=null, micSource=null, rafId=null;
@@ -645,15 +992,13 @@ function freqToNote(f){
 }
 
 function autoCorrelate(buf, sampleRate){
-  // basic autocorrelation pitch detection (good enough for MVP)
   const SIZE = buf.length;
   let rms = 0;
   for(let i=0;i<SIZE;i++){ const v = buf[i]; rms += v*v; }
   rms = Math.sqrt(rms / SIZE);
-  if(rms < 0.01) return null; // too quiet
+  if(rms < 0.01) return null;
 
   let r1=0, r2=SIZE-1;
-  // trim edges
   while(r1 < SIZE/2 && Math.abs(buf[r1]) < 0.01) r1++;
   while(r2 > SIZE/2 && Math.abs(buf[r2]) < 0.01) r2--;
 
@@ -678,7 +1023,6 @@ function autoCorrelate(buf, sampleRate){
   }
   if(maxPos <= 0) return null;
 
-  // parabolic interpolation
   const x1 = c[maxPos-1] ?? 0;
   const x2 = c[maxPos];
   const x3 = c[maxPos+1] ?? 0;
@@ -716,10 +1060,8 @@ async function micOn(){
         centsRead.textContent = `${n.cents} cents`;
         targetRead.textContent = `target: ${n.target.toFixed(2)} Hz`;
 
-        // meter: clamp cents to [-50,+50]
         const c = Math.max(-50, Math.min(50, n.cents));
-        // translate so 0 is center; our bar uses translateX(-50%) baseline, so move within +-50%
-        const pct = (c / 50) * 50; // -50..+50
+        const pct = (c / 50) * 50;
         meterBar.style.transform = `translateX(${pct-50}%)`;
       } else {
         noteName.textContent = "—";
