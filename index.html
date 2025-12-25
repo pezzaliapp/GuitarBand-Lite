@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>GuitarBand Lite — Trainer • Tuner • Studio/Loop</title>
+  <title>GuitarBand Lite — Trainer & Tuner</title>
   <style>
     :root{
       --bg:#0b0f14;
@@ -37,7 +37,7 @@
       display:flex; align-items:center; justify-content:space-between;
       gap:12px;
     }
-    .brand{display:flex; align-items:center; gap:10px; min-width: 240px;}
+    .brand{display:flex; align-items:center; gap:10px; min-width: 220px;}
     .logo{
       width:38px; height:38px; border-radius:12px;
       background: linear-gradient(135deg, rgba(94,234,212,.25), rgba(96,165,250,.18));
@@ -67,15 +67,15 @@
     }
     main{
       padding: 16px;
-      max-width: 1200px;
+      max-width: 1100px;
       margin: 0 auto;
     }
     .grid{
       display:grid;
-      grid-template-columns: 1.05fr .95fr;
+      grid-template-columns: 1.2fr .8fr;
       gap: 14px;
     }
-    @media (max-width: 980px){
+    @media (max-width: 920px){
       .grid{grid-template-columns:1fr}
       .brand{min-width: unset}
     }
@@ -93,10 +93,10 @@
       color: var(--txt);
       display:flex; align-items:center; justify-content:space-between;
       gap:10px;
+      flex-wrap:wrap;
     }
     .muted{color:var(--muted); font-size:12px}
     .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-    .row.tight{gap:8px}
     .btn{
       border:1px solid var(--bd);
       background: rgba(255,255,255,.04);
@@ -105,15 +105,14 @@
       border-radius: 12px;
       cursor:pointer;
       user-select:none;
-      font-weight:700;
+      font-weight:600;
       font-size: 13px;
-      letter-spacing:.2px;
     }
     .btn.primary{
       border-color: rgba(94,234,212,.45);
       background: rgba(94,234,212,.12);
     }
-    .btn.blue{
+    .btn.secondary{
       border-color: rgba(96,165,250,.45);
       background: rgba(96,165,250,.12);
     }
@@ -141,10 +140,10 @@
       background: rgba(255,255,255,.03);
       font-size: 12px;
       color: var(--muted);
-      white-space: nowrap;
+      white-space:nowrap;
     }
-    .pill.ok{border-color: rgba(52,211,153,.35); color: rgba(52,211,153,.95); background: rgba(52,211,153,.06);}
-    .pill.bad{border-color: rgba(251,113,133,.35); color: rgba(251,113,133,.95); background: rgba(251,113,133,.06);}
+    .pill.ok{border-color: rgba(52,211,153,.35); color: rgba(52,211,153,.92); background: rgba(52,211,153,.08)}
+    .pill.warn{border-color: rgba(251,113,133,.35); color: rgba(251,113,133,.92); background: rgba(251,113,133,.08)}
     .meter{
       height: 10px;
       border-radius: 999px;
@@ -158,7 +157,6 @@
       width:50%;
       background: linear-gradient(90deg, rgba(251,113,133,.9), rgba(94,234,212,.9), rgba(251,113,133,.9));
       transform: translateX(-50%);
-      will-change: transform;
     }
     .chordBox{
       display:grid;
@@ -166,10 +164,10 @@
       gap: 12px;
       align-items:start;
     }
-    @media (max-width: 640px){ .chordBox{grid-template-columns:1fr} }
+    @media (max-width: 560px){ .chordBox{grid-template-columns:1fr} }
     .fret{
       width: 100%;
-      max-width: 340px;
+      max-width: 320px;
       border-radius: 14px;
       border:1px solid var(--bd);
       background: rgba(0,0,0,.18);
@@ -185,24 +183,30 @@
     audio{width:100%}
     .hide{display:none}
 
-    /* Drum grid */
+    /* --- Drum machine UI --- */
     .steps{
       display:grid;
-      grid-template-columns: 42px repeat(16, 1fr);
+      grid-template-columns: 42px repeat(var(--nsteps, 16), 1fr);
       gap: 6px;
       align-items:center;
       margin-top: 10px;
+      overflow:auto;
+      padding-bottom: 6px;
     }
-    .steps.step32{ grid-template-columns: 42px repeat(32, 1fr); }
     .steps .lab{
       font-size: 12px;
       color: var(--muted);
       text-align:right;
       padding-right:6px;
       user-select:none;
+      position:sticky;
+      left:0;
+      background: rgba(11,15,20,.35);
+      border-radius: 10px;
     }
     .step{
       height: 20px;
+      min-width: 18px;
       border-radius: 8px;
       border:1px solid var(--bd);
       background: rgba(255,255,255,.03);
@@ -223,15 +227,16 @@
       pointer-events:none;
     }
 
-    /* Sequencer grid */
+    /* --- Sequencer UI (accordi + corde) --- */
     .seqsteps{
       display:grid;
-      grid-template-columns: 86px repeat(16, 1fr);
+      grid-template-columns: 80px repeat(var(--nsteps, 16), 1fr);
       gap: 6px;
       align-items:center;
       margin-top: 10px;
+      overflow:auto;
+      padding-bottom: 6px;
     }
-    .seqsteps.step32{ grid-template-columns: 86px repeat(32, 1fr); }
     .seqsteps .lab{
       font-size: 12px;
       color: var(--muted);
@@ -239,9 +244,14 @@
       padding-right:6px;
       user-select:none;
       white-space: nowrap;
+      position:sticky;
+      left:0;
+      background: rgba(11,15,20,.35);
+      border-radius: 10px;
     }
     .seqstep{
       height: 24px;
+      min-width: 18px;
       border-radius: 9px;
       border:1px solid var(--bd);
       background: rgba(255,255,255,.03);
@@ -259,6 +269,10 @@
       background: rgba(94,234,212,.12);
       box-shadow: 0 0 0 3px rgba(94,234,212,.06) inset;
     }
+    .seqstep.chord{
+      border-color: rgba(96,165,250,.35);
+      background: rgba(96,165,250,.10);
+    }
     .seqstep.playhead::after{
       content:"";
       position:absolute;
@@ -267,10 +281,14 @@
       border:2px solid rgba(96,165,250,.55);
       pointer-events:none;
     }
-
-    .hr{border:none;border-top:1px solid var(--bd);margin:14px 0}
+    .tiny{
+      font-size:11px;
+      padding: 6px 10px;
+      border-radius: 12px;
+    }
   </style>
 </head>
+
 <body>
 <header>
   <div class="brand">
@@ -315,12 +333,12 @@
         </div>
 
         <div class="fret">
-          <canvas id="fretCanvas" width="520" height="340"></canvas>
+          <canvas id="fretCanvas" width="480" height="320"></canvas>
           <div class="hint">Diagramma semplice (capotasto in alto). “X” = corda muta, “0” = corda a vuoto.</div>
         </div>
       </div>
 
-      <hr class="hr">
+      <hr style="border:none;border-top:1px solid var(--bd);margin:14px 0">
 
       <div class="row">
         <button class="btn primary" id="startTrainer">Avvia sessione</button>
@@ -341,8 +359,9 @@
 
     <div class="card">
       <h2>Metronomo / Groove</h2>
+
       <div class="row">
-        <button class="btn primary" id="metroToggle">Metronomo: Off</button>
+        <button class="btn primary" id="metroToggle">Metronomo: On</button>
         <label class="muted">BPM</label>
         <input type="range" id="bpm" min="40" max="220" value="76">
         <input type="number" id="bpmNum" min="40" max="220" value="76" style="width:90px">
@@ -353,9 +372,9 @@
           <option value="6">6/8</option>
         </select>
       </div>
-      <div class="hint" id="metroHint">Ora il click è schedulato sul clock audio (sincronizzabile con Drum/Sequencer).</div>
+      <div class="hint">Ora il click è schedulato sul clock audio (sincronizzato con Drum/Sequencer).</div>
 
-      <hr class="hr">
+      <hr style="border:none;border-top:1px solid var(--bd);margin:14px 0">
 
       <h2>Drone (tonica)</h2>
       <div class="row">
@@ -372,18 +391,18 @@
       </div>
       <div class="hint">Il drone aiuta l’orecchio: suona scale/accordi sopra una nota fissa.</div>
 
-      <hr class="hr">
+      <hr style="border:none;border-top:1px solid var(--bd);margin:14px 0">
 
       <h2>Drum machine (16/32 step)</h2>
       <div class="row">
-        <button class="btn blue" id="drumToggle">Drum: Off</button>
+        <button class="btn primary" id="drumToggle">Drum: On</button>
         <label class="muted">Swing</label>
         <input type="range" id="swing" min="0" max="0.6" step="0.01" value="0.10">
         <label class="muted">Vol</label>
         <input type="range" id="drumVol" min="0" max="1" step="0.01" value="0.65">
-        <span class="pill" id="drumLenPill">16 step</span>
+        <span class="pill" id="drumStepsInfo">16 step</span>
       </div>
-      <div class="hint">Griglia step: clicca per attivare. Segue il BPM e può partire anche dal Transport in Studio.</div>
+      <div class="hint">Loop: 1 o 2 battute. Se passi a 2 battute, compaiono 32 step.</div>
 
       <div class="steps" id="stepGrid"></div>
     </div>
@@ -438,7 +457,7 @@
     <div class="card">
       <h2>
         Transport (tutto sincronizzato)
-        <span class="pill" id="transportStatus">stopped</span>
+        <span class="pill" id="transportStatus">idle</span>
       </h2>
 
       <div class="row">
@@ -447,38 +466,35 @@
 
         <label class="muted">Loop</label>
         <select id="loopLen">
-          <option value="16">1 battuta (16 step)</option>
-          <option value="32">2 battute (32 step)</option>
+          <option value="1">1 battuta (16 step)</option>
+          <option value="2" selected>2 battute (32 step)</option>
         </select>
 
-        <span class="pill" id="transportFlags">metro:off • drum:off • seq:off</span>
+        <span class="pill" id="loopInfo">32 step</span>
+        <span class="pill" id="flagsInfo">metro:on • drum:on • seq:on</span>
       </div>
 
-      <div class="row tight" style="margin-top:8px">
-        <button class="btn" id="toggleMetroInTransport">Metronomo: Off</button>
-        <button class="btn" id="toggleDrumInTransport">Drum: Off</button>
-        <button class="btn" id="toggleSeqInTransport">Seq: Off</button>
-        <span class="pill">Strum: <b id="strumEcho">↓ down</b></span>
+      <div class="hint">
+        Un solo clock audio pilota: metronomo, drum, accordi e corde.
+        (Il microfono/rec è separato.)
       </div>
 
-      <div class="hint">Un solo clock audio pilota: metronomo, drum, accordi e corde (sequencer). Microfono/rec è separato.</div>
-
-      <hr class="hr">
+      <hr style="border:none;border-top:1px solid var(--bd);margin:14px 0">
 
       <h2>Sequencer — Accordi + 6 corde (step quantizzati)</h2>
 
       <div class="row">
         <label class="muted">Accordo</label>
         <select id="seqChordPick"></select>
-        <button class="btn" id="seqClearChords">Clear chords</button>
-        <button class="btn" id="seqFillChord">Fill loop</button>
+        <button class="btn tiny" id="seqClearChords">Clear chords</button>
+        <button class="btn tiny" id="seqFillChord">Fill loop</button>
 
-        <span class="pill" id="seqInfo">16 step = 1 battuta (4/4)</span>
+        <span class="pill" id="seqInfo">step = 16th</span>
       </div>
 
-      <div class="row" style="margin-top:6px">
+      <div class="row" style="margin-top:8px">
         <label class="muted">Edit corde</label>
-        <select id="seqStringPick">
+        <select id="stringPick">
           <option value="0">E (bassa)</option>
           <option value="1">A</option>
           <option value="2">D</option>
@@ -486,22 +502,25 @@
           <option value="4">B</option>
           <option value="5">E (alta)</option>
         </select>
+
         <label class="muted">Fret</label>
-        <input type="number" id="seqFretPick" min="0" max="12" value="0" style="width:90px">
-        <button class="btn" id="seqClearStrings">Clear corde</button>
+        <input type="number" id="fretPick" value="0" min="0" max="12" style="width:90px">
+
+        <button class="btn tiny" id="seqClearStrings">Clear corde</button>
+
         <span class="pill">Click step = toggle (mette il fret selezionato)</span>
       </div>
 
       <div class="seqsteps" id="seqGrid"></div>
 
       <div class="row" style="margin-top:12px">
-        <button class="btn blue" id="seqLocalToggle">Seq: Off</button>
-        <span class="pill" id="seqStatus">idle</span>
+        <button class="btn secondary" id="seqToggle">Seq: On</button>
+        <span class="pill" id="seqStatus">enabled</span>
       </div>
 
       <div class="hint">
-        Riga CHORD: clic per assegnare l’accordo selezionato.<br>
-        Righe corde: scegli corda + fret, poi clic sugli step per inserire/togliere la nota su quella corda.
+        Riga CHORD: clic per assegnare l’accordo selezionato. <br>
+        Righe corde: seleziona corda + fret, poi clic sugli step per inserire/levare la nota su quella corda.
       </div>
     </div>
 
@@ -512,13 +531,16 @@
         <button class="btn danger" id="recStop" disabled>Stop</button>
         <span class="pill" id="recStatus">idle</span>
       </div>
-      <div class="hint">Registra dal microfono (MediaRecorder → webm/ogg). Registrare il mix interno richiede MediaStreamDestination (aggiungibile).</div>
+      <div class="hint">
+        Registra dal microfono (MediaRecorder → webm/ogg). Per registrare il “mix interno” serve una versione
+        con MediaStreamDestination (posso aggiungerla).
+      </div>
 
       <div style="margin-top:12px">
         <audio id="playback" controls></audio>
       </div>
 
-      <hr class="hr">
+      <hr style="border:none;border-top:1px solid var(--bd);margin:14px 0">
 
       <h2>Roadmap “GarageBand style”</h2>
       <ul class="muted" style="margin:0; padding-left: 18px; line-height:1.6">
@@ -532,9 +554,9 @@
 </main>
 
 <script>
-/* =========================================================
-   AUDIO CORE
-========================================================= */
+/* =========================
+   Audio engine basics
+========================= */
 let audioCtx = null;
 function ensureAudio(){
   if(!audioCtx){
@@ -543,9 +565,9 @@ function ensureAudio(){
   return audioCtx;
 }
 
-/* =========================================================
-   UI: Tabs / Views
-========================================================= */
+/* =========================
+   Tabs / Views
+========================= */
 const tabs = [...document.querySelectorAll('.tab')];
 const views = {
   practice: document.getElementById('view-practice'),
@@ -559,9 +581,9 @@ tabs.forEach(t => t.addEventListener('click', () => {
   Object.entries(views).forEach(([k, el]) => el.classList.toggle('hide', k !== v));
 }));
 
-/* =========================================================
-   GLOBAL BPM / SIGNATURE
-========================================================= */
+/* =========================
+   UI refs
+========================= */
 const bpm = document.getElementById('bpm');
 const bpmNum = document.getElementById('bpmNum');
 const sig = document.getElementById('sig');
@@ -569,20 +591,70 @@ const sig = document.getElementById('sig');
 bpm.addEventListener('input', () => bpmNum.value = bpm.value);
 bpmNum.addEventListener('input', () => bpm.value = bpmNum.value);
 
-function beatsPerBar(){
-  const v = Number(sig.value);
-  // 6/8 lo trattiamo come 6 beat (semplificato)
-  return v;
-}
-function stepDurSec(){
-  // 16th note
-  const bpmVal = Number(bpm.value || 120);
-  return (60 / bpmVal) / 4;
-}
+/* =========================
+   Metronome (scheduled)
+========================= */
+let metroEnabled = true;
+const metroBtn = document.getElementById('metroToggle');
 
-/* =========================================================
-   CHORDS + DIAGRAM
-========================================================= */
+function clickSoundAt(time, isAccent){
+  const ctx = ensureAudio();
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'square';
+  o.frequency.setValueAtTime(isAccent ? 1400 : 980, time);
+
+  g.gain.setValueAtTime(0.0001, time);
+  g.gain.exponentialRampToValueAtTime(isAccent ? 0.25 : 0.15, time + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001, time + 0.06);
+
+  o.connect(g).connect(ctx.destination);
+  o.start(time);
+  o.stop(time + 0.07);
+}
+metroBtn.addEventListener('click', ()=>{
+  metroEnabled = !metroEnabled;
+  metroBtn.textContent = metroEnabled ? "Metronomo: On" : "Metronomo: Off";
+  paintFlags();
+});
+
+/* =========================
+   Drone (tonic)
+========================= */
+let droneOsc=null, droneGain=null;
+const droneToggle = document.getElementById('droneToggle');
+const droneNote = document.getElementById('droneNote');
+const droneVol = document.getElementById('droneVol');
+
+function droneOn(){
+  const ctx = ensureAudio();
+  droneOsc = ctx.createOscillator();
+  droneGain = ctx.createGain();
+  droneOsc.type = 'sine';
+  droneOsc.frequency.value = Number(droneNote.value);
+  droneGain.gain.value = Number(droneVol.value);
+  droneOsc.connect(droneGain).connect(ctx.destination);
+  droneOsc.start();
+}
+function droneOff(){
+  try{ droneOsc && droneOsc.stop(); }catch(e){}
+  droneOsc=null;
+  droneGain=null;
+}
+droneToggle.addEventListener('click', ()=>{
+  if(droneOsc){ droneOff(); }
+  else { droneOn(); }
+});
+droneNote.addEventListener('change', ()=>{
+  if(droneOsc){ droneOsc.frequency.value = Number(droneNote.value); }
+});
+droneVol.addEventListener('input', ()=>{
+  if(droneGain){ droneGain.gain.value = Number(droneVol.value); }
+});
+
+/* =========================
+   Chord library + diagram
+========================= */
 const CHORDS = {
   "Em": { fingering: ["0","2","2","0","0","0"], hint:"Em: classico, facile. Suona tutte le corde." },
   "Am": { fingering: ["X","0","2","2","1","0"], hint:"Am: attenzione a non stoppare la 1ª corda." },
@@ -603,12 +675,6 @@ const fretCanvas = document.getElementById('fretCanvas');
 const ctx2d = fretCanvas.getContext('2d');
 
 const chordSet = document.getElementById('chordSet');
-function getSet(){
-  const all = Object.keys(CHORDS);
-  if(chordSet.value==="basic") return ["Em","Am","C","G","D"];
-  if(chordSet.value==="open") return ["E","A","D","G","C","F","Am","Em","Dm"];
-  return all;
-}
 function setOptions(list){
   chordSelect.innerHTML = "";
   list.forEach(k=>{
@@ -617,14 +683,26 @@ function setOptions(list){
     chordSelect.appendChild(opt);
   });
 }
+function getSet(){
+  const all = Object.keys(CHORDS);
+  if(chordSet.value==="basic") return ["Em","Am","C","G","D"];
+  if(chordSet.value==="open") return ["E","A","D","G","C","F","Am","Em","Dm"];
+  return all;
+}
 setOptions(getSet());
 
 chordSet.addEventListener('change', ()=>{
-  const list = getSet();
-  setOptions(list);
-  chordSelect.value = list[0];
-  renderChord(list[0]);
+  setOptions(getSet());
+  chordSelect.value = getSet()[0];
+  renderChord(chordSelect.value);
 });
+
+function renderChord(name){
+  const c = CHORDS[name];
+  chordName.textContent = name;
+  chordHint.textContent = c?.hint ?? "";
+  drawFret(c?.fingering ?? ["X","X","X","X","X","X"]);
+}
 
 function drawFret(f){
   const W = fretCanvas.width, H = fretCanvas.height;
@@ -632,7 +710,7 @@ function drawFret(f){
   ctx2d.fillStyle = "rgba(0,0,0,.18)";
   ctx2d.fillRect(0,0,W,H);
 
-  const pad = 46;
+  const pad = 42;
   const left = pad, top = pad;
   const right = W - pad, bottom = H - pad;
   const strings = 6, frets = 5;
@@ -666,7 +744,7 @@ function drawFret(f){
     const v = f[i];
     if(v==="X" || v==="0"){
       ctx2d.fillStyle = "rgba(255,255,255,.85)";
-      ctx2d.fillText(v, x, top - 22);
+      ctx2d.fillText(v, x, top - 20);
     } else {
       const fretNum = Number(v);
       const y = top + (bottom-top) * ((fretNum-0.5)/frets);
@@ -678,13 +756,6 @@ function drawFret(f){
       ctx2d.fillText(String(fretNum), x, y+1);
     }
   }
-}
-
-function renderChord(name){
-  const c = CHORDS[name];
-  chordName.textContent = name;
-  chordHint.textContent = c?.hint ?? "";
-  drawFret(c?.fingering ?? ["X","X","X","X","X","X"]);
 }
 
 chordSelect.addEventListener('change', ()=> renderChord(chordSelect.value));
@@ -700,17 +771,9 @@ nextChord.addEventListener('click', ()=>{
 chordSelect.value = getSet()[0];
 renderChord(chordSelect.value);
 
-/* =========================================================
-   GUITAR SYNTH (strings + chords + arpeggio)
-========================================================= */
-const playChordBtn = document.getElementById('playChord');
-const strumSel = document.getElementById('strum');
-const strumEcho = document.getElementById('strumEcho');
-strumSel.addEventListener('change', ()=> {
-  const map = {down:"↓ down", up:"↑ up", arp:"arp"};
-  strumEcho.textContent = map[strumSel.value] || strumSel.value;
-});
-
+/* =========================
+   Guitar synth (strings + chord)
+========================= */
 // Standard tuning frequencies lowE..highE
 const TUNING = [82.41, 110.00, 146.83, 196.00, 246.94, 329.63];
 const SEMI = Math.pow(2, 1/12);
@@ -718,38 +781,8 @@ const SEMI = Math.pow(2, 1/12);
 function stringFretToFreq(stringIndex, fret){
   return TUNING[stringIndex] * Math.pow(SEMI, fret);
 }
-function chordToFreqs(fingering){
-  const freqs = [];
-  for(let i=0;i<6;i++){
-    const v = fingering[i];
-    if(v === "X") continue;
-    const fret = Number(v);
-    freqs.push(stringFretToFreq(i, fret));
-  }
-  return freqs;
-}
 
-let guitarBusIn = null;
-function ensureGuitarBus(){
-  const ctx = ensureAudio();
-  if(guitarBusIn) return guitarBusIn;
-
-  const comp = ctx.createDynamicsCompressor();
-  comp.threshold.value = -18;
-  comp.knee.value = 18;
-  comp.ratio.value = 3.5;
-  comp.attack.value = 0.005;
-  comp.release.value = 0.12;
-
-  const out = ctx.createGain();
-  out.gain.value = 0.95;
-
-  comp.connect(out).connect(ctx.destination);
-  guitarBusIn = comp;
-  return guitarBusIn;
-}
-
-function pluckAt(ctx, freq, t, out, amp=0.18){
+function pluck(ctx, freq, t, out, vel=0.18){
   const o = ctx.createOscillator();
   const g = ctx.createGain();
   const f = ctx.createBiquadFilter();
@@ -763,8 +796,8 @@ function pluckAt(ctx, freq, t, out, amp=0.18){
   f.Q.setValueAtTime(0.8, t);
 
   g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(amp, t + 0.008);
-  g.gain.exponentialRampToValueAtTime(amp*0.35, t + 0.10);
+  g.gain.exponentialRampToValueAtTime(vel, t + 0.008);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.04, vel*0.33), t + 0.10);
   g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
 
   o.connect(f).connect(g).connect(out);
@@ -772,44 +805,72 @@ function pluckAt(ctx, freq, t, out, amp=0.18){
   o.stop(t + 0.6);
 }
 
-function playChordAt(time, chordNameToPlay){
+let chordBusIn = null;
+let chordOutGain = null;
+function ensureChordBus(){
   const ctx = ensureAudio();
-  const out = ensureGuitarBus();
-  const fingering = CHORDS[chordNameToPlay]?.fingering;
+  if(chordBusIn) return chordBusIn;
+
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -18;
+  comp.knee.value = 18;
+  comp.ratio.value = 3.5;
+  comp.attack.value = 0.005;
+  comp.release.value = 0.12;
+
+  chordOutGain = ctx.createGain();
+  chordOutGain.gain.value = 0.95;
+
+  comp.connect(chordOutGain).connect(ctx.destination);
+  chordBusIn = comp;
+  return chordBusIn;
+}
+
+function chordToFreqs(fingering){
+  const freqs = [];
+  for(let i=0;i<6;i++){
+    const v = fingering[i];
+    if(v === "X") continue;
+    const fret = Number(v);
+    freqs.push(stringFretToFreq(i, fret));
+  }
+  return freqs;
+}
+
+const playChordBtn = document.getElementById('playChord');
+const strumSel = document.getElementById('strum');
+
+function playChordAt(time, chordNameOverride=null){
+  const ctx = ensureAudio();
+  const busIn = ensureChordBus();
+  const name = chordNameOverride || chordSelect.value;
+  const fingering = CHORDS[name]?.fingering;
   if(!fingering) return;
 
   const freqs = chordToFreqs(fingering);
   const mode = strumSel.value;
 
   const bpmVal = Number(bpm.value || 76);
-  const step = 60 / bpmVal / 8; // micro-offset per strum/arp
+  const step = 60 / bpmVal / 8;
 
   let order = freqs.slice();
   if(mode === "up") order = order.reverse();
 
+  const t0 = time ?? (ctx.currentTime + 0.02);
   order.forEach((fq, idx)=>{
     const dt = (mode === "arp") ? idx * (step*1.2) : idx * (step*0.5);
-    pluckAt(ctx, fq, time + dt, out, 0.18);
+    pluck(ctx, fq, t0 + dt, busIn, 0.18);
   });
 }
-
-function playStringAt(time, stringIndex, fret){
-  const ctx = ensureAudio();
-  const out = ensureGuitarBus();
-  const fq = stringFretToFreq(stringIndex, fret);
-  pluckAt(ctx, fq, time, out, 0.16);
-}
-
 function playChordNow(){
   const ctx = ensureAudio();
-  const t0 = ctx.currentTime + 0.03;
-  playChordAt(t0, chordSelect.value);
+  playChordAt(ctx.currentTime + 0.02);
 }
 playChordBtn.addEventListener('click', playChordNow);
 
-/* =========================================================
-   TRAINER (auto-change chord)
-========================================================= */
+/* =========================
+   Trainer: auto-change chord
+========================= */
 let trainerTimer = null;
 const startTrainer = document.getElementById('startTrainer');
 const stopTrainer = document.getElementById('stopTrainer');
@@ -841,74 +902,48 @@ function trainerStop(){
 startTrainer.addEventListener('click', trainerStart);
 stopTrainer.addEventListener('click', trainerStop);
 
-/* =========================================================
-   DRONE (tonic)
-========================================================= */
-let droneOsc=null, droneGain=null;
-const droneToggle = document.getElementById('droneToggle');
-const droneNote = document.getElementById('droneNote');
-const droneVol = document.getElementById('droneVol');
+/* =========================
+   Loop length (1 or 2 bars)
+========================= */
+const loopLen = document.getElementById('loopLen');
+const loopInfo = document.getElementById('loopInfo');
+const drumStepsInfo = document.getElementById('drumStepsInfo');
 
-function droneOn(){
-  const ctx = ensureAudio();
-  droneOsc = ctx.createOscillator();
-  droneGain = ctx.createGain();
-  droneOsc.type = 'sine';
-  droneOsc.frequency.value = Number(droneNote.value);
-  droneGain.gain.value = Number(droneVol.value);
-  droneOsc.connect(droneGain).connect(ctx.destination);
-  droneOsc.start();
+function getLoopSteps(){
+  return Number(loopLen.value) === 2 ? 32 : 16;
 }
-function droneOff(){
-  try{ droneOsc && droneOsc.stop(); }catch(e){}
-  droneOsc=null;
-  droneGain=null;
+function updateLoopBadges(){
+  const n = getLoopSteps();
+  loopInfo.textContent = `${n} step`;
+  drumStepsInfo.textContent = `${n} step`;
 }
-droneToggle.addEventListener('click', ()=>{
-  if(droneOsc){ droneOff(); }
-  else { droneOn(); }
-});
-droneNote.addEventListener('change', ()=>{
-  if(droneOsc){ droneOsc.frequency.value = Number(droneNote.value); }
-});
-droneVol.addEventListener('input', ()=>{
-  if(droneGain){ droneGain.gain.value = Number(droneVol.value); }
-});
 
-/* =========================================================
-   DRUM SYNTH + PATTERN (16/32 step)
-========================================================= */
+/* =========================
+   Drum machine (16/32)
+========================= */
 const drumToggle = document.getElementById('drumToggle');
 const swing = document.getElementById('swing');
 const drumVol = document.getElementById('drumVol');
 const stepGrid = document.getElementById('stepGrid');
-const drumLenPill = document.getElementById('drumLenPill');
 
 const tracks = ["K","S","H"]; // kick, snare, hat
-let LOOP_STEPS = 16;
+let drumEnabled = true;
 
-let pattern = {
-  K: Array(16).fill(false),
-  S: Array(16).fill(false),
-  H: Array(16).fill(false),
+// pattern is dynamic based on loop steps
+let drumPattern = {
+  K: Array(32).fill(false),
+  S: Array(32).fill(false),
+  H: Array(32).fill(false),
 };
 
-// default groove helper
-function fillDefaultGroove(){
-  pattern.K.fill(false); pattern.S.fill(false); pattern.H.fill(false);
-  const steps = pattern.K.length;
-  // kick on beats
-  for(let i=0;i<steps;i+=4) pattern.K[i] = true;
-  // snare on 2 and 4 (in 16-step: 4 & 12; in 32: 4,12,20,28)
-  if(steps === 16){
-    [4,12].forEach(i=>pattern.S[i]=true);
-    [2,6,10,14].forEach(i=>pattern.H[i]=true);
-  } else {
-    [4,12,20,28].forEach(i=>pattern.S[i]=true);
-    for(let i=2;i<steps;i+=4) pattern.H[i]=true;
-  }
-}
-fillDefaultGroove();
+// default groove for first bar
+[0,4,8,12].forEach(i=>drumPattern.K[i]=true);
+[4,12].forEach(i=>drumPattern.S[i]=true);
+[2,6,10,14].forEach(i=>drumPattern.H[i]=true);
+// second bar: slightly varied default
+[16,20,24,28].forEach(i=>drumPattern.K[i]=true);
+[20,28].forEach(i=>drumPattern.S[i]=true);
+[18,22,26,30].forEach(i=>drumPattern.H[i]=true);
 
 let drumMaster = null;
 function ensureDrumBus(){
@@ -921,24 +956,25 @@ function ensureDrumBus(){
 }
 drumVol.addEventListener('input', ()=>{ if(drumMaster) drumMaster.gain.value = Number(drumVol.value); });
 
-function kick(t){
+function kick(time){
   const ctx = ensureAudio();
   const out = ensureDrumBus();
   const o = ctx.createOscillator();
   const g = ctx.createGain();
   o.type = 'sine';
-  o.frequency.setValueAtTime(150, t);
-  o.frequency.exponentialRampToValueAtTime(55, t + 0.08);
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(0.9, t + 0.005);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+  o.frequency.setValueAtTime(150, time);
+  o.frequency.exponentialRampToValueAtTime(55, time + 0.08);
+  g.gain.setValueAtTime(0.0001, time);
+  g.gain.exponentialRampToValueAtTime(0.9, time + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001, time + 0.12);
   o.connect(g).connect(out);
-  o.start(t);
-  o.stop(t + 0.14);
+  o.start(time);
+  o.stop(time + 0.14);
 }
-function snare(t){
+function snare(time){
   const ctx = ensureAudio();
   const out = ensureDrumBus();
+
   const noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.2, ctx.sampleRate);
   const data = noiseBuf.getChannelData(0);
   for(let i=0;i<data.length;i++) data[i] = (Math.random()*2-1);
@@ -951,28 +987,29 @@ function snare(t){
   hp.frequency.value = 1200;
 
   const g = ctx.createGain();
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(0.35, t + 0.005);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.11);
+  g.gain.setValueAtTime(0.0001, time);
+  g.gain.exponentialRampToValueAtTime(0.35, time + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001, time + 0.11);
 
   noise.connect(hp).connect(g).connect(out);
-  noise.start(t);
-  noise.stop(t + 0.12);
+  noise.start(time);
+  noise.stop(time + 0.12);
 
   const o = ctx.createOscillator();
   const og = ctx.createGain();
   o.type = 'triangle';
-  o.frequency.setValueAtTime(210, t);
-  og.gain.setValueAtTime(0.0001, t);
-  og.gain.exponentialRampToValueAtTime(0.10, t + 0.004);
-  og.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+  o.frequency.setValueAtTime(210, time);
+  og.gain.setValueAtTime(0.0001, time);
+  og.gain.exponentialRampToValueAtTime(0.10, time + 0.004);
+  og.gain.exponentialRampToValueAtTime(0.0001, time + 0.09);
   o.connect(og).connect(out);
-  o.start(t);
-  o.stop(t + 0.1);
+  o.start(time);
+  o.stop(time + 0.1);
 }
-function hat(t){
+function hat(time){
   const ctx = ensureAudio();
   const out = ensureDrumBus();
+
   const noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.08, ctx.sampleRate);
   const data = noiseBuf.getChannelData(0);
   for(let i=0;i<data.length;i++) data[i] = (Math.random()*2-1);
@@ -986,18 +1023,64 @@ function hat(t){
   bp.Q.value = 0.8;
 
   const g = ctx.createGain();
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(0.22, t + 0.002);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+  g.gain.setValueAtTime(0.0001, time);
+  g.gain.exponentialRampToValueAtTime(0.22, time + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, time + 0.05);
 
   src.connect(bp).connect(g).connect(out);
-  src.start(t);
-  src.stop(t + 0.06);
+  src.start(time);
+  src.stop(time + 0.06);
 }
 
-/* =========================================================
-   SEQUENCER DATA (chords + 6 strings), 16/32 step
-========================================================= */
+function buildDrumGrid(){
+  const steps = getLoopSteps();
+  stepGrid.style.setProperty('--nsteps', steps);
+  stepGrid.innerHTML = "";
+
+  tracks.forEach(tr=>{
+    const lab = document.createElement('div');
+    lab.className = "lab";
+    lab.textContent = tr;
+    stepGrid.appendChild(lab);
+
+    for(let i=0;i<steps;i++){
+      const d = document.createElement('div');
+      d.className = "step" + (drumPattern[tr][i] ? " on" : "");
+      d.dataset.tr = tr;
+      d.dataset.i = String(i);
+      d.addEventListener('click', ()=>{
+        const t = d.dataset.tr;
+        const idx = Number(d.dataset.i);
+        drumPattern[t][idx] = !drumPattern[t][idx];
+        d.classList.toggle('on', drumPattern[t][idx]);
+      });
+      stepGrid.appendChild(d);
+    }
+  });
+}
+
+function drumClearPlayhead(){
+  stepGrid.querySelectorAll('.step.playhead').forEach(el=>el.classList.remove('playhead'));
+}
+function drumPaintPlayhead(stepIndex){
+  drumClearPlayhead();
+  const steps = getLoopSteps();
+  tracks.forEach((tr, row)=>{
+    const flatIndex = row * (1 + steps) + 1 + stepIndex; // label + steps
+    const el = stepGrid.children[flatIndex];
+    if(el) el.classList.add('playhead');
+  });
+}
+
+drumToggle.addEventListener('click', ()=>{
+  drumEnabled = !drumEnabled;
+  drumToggle.textContent = drumEnabled ? "Drum: On" : "Drum: Off";
+  paintFlags();
+});
+
+/* =========================
+   Sequencer: CHORD lane + 6-string lanes
+========================= */
 const seqChordPick = document.getElementById('seqChordPick');
 const seqClearChords = document.getElementById('seqClearChords');
 const seqFillChord = document.getElementById('seqFillChord');
@@ -1005,10 +1088,14 @@ const seqClearStrings = document.getElementById('seqClearStrings');
 const seqGrid = document.getElementById('seqGrid');
 const seqStatus = document.getElementById('seqStatus');
 const seqInfo = document.getElementById('seqInfo');
-const seqStringPick = document.getElementById('seqStringPick');
-const seqFretPick = document.getElementById('seqFretPick');
-const seqLocalToggle = document.getElementById('seqLocalToggle');
 
+const seqToggle = document.getElementById('seqToggle');
+let seqEnabled = true;
+
+const stringPick = document.getElementById('stringPick');
+const fretPick = document.getElementById('fretPick');
+
+// chord dropdown
 Object.keys(CHORDS).forEach(k=>{
   const o = document.createElement('option');
   o.value = k; o.textContent = k;
@@ -1016,28 +1103,28 @@ Object.keys(CHORDS).forEach(k=>{
 });
 seqChordPick.value = "C";
 
-let chordLane = Array(16).fill(null); // chord name or null
-let stringLanes = Array.from({length:6}, ()=> Array(16).fill(null)); // fret number or null
+function maxSteps32(){ return 32; } // storage always 32, UI shows 16/32
+let chordLane = Array(maxSteps32()).fill(null); // chord name or null
 
-function resizeSequencer(steps){
-  chordLane = Array(steps).fill(null);
-  stringLanes = Array.from({length:6}, ()=> Array(steps).fill(null));
-  buildSeqGrid();
-}
+// stringLanes: 6 arrays; each cell null or fret number
+let stringLanes = Array.from({length:6}, ()=> Array(maxSteps32()).fill(null));
+
+const STRING_LABELS = ["E↓","A","D","G","B","E↑"];
 
 function buildSeqGrid(){
+  const steps = getLoopSteps();
+  seqGrid.style.setProperty('--nsteps', steps);
   seqGrid.innerHTML = "";
-  seqGrid.classList.toggle('step32', LOOP_STEPS === 32);
 
-  // CHORD row
+  // row CHORD
   const chordLab = document.createElement('div');
   chordLab.className = "lab";
   chordLab.textContent = "CHORD";
   seqGrid.appendChild(chordLab);
 
-  for(let s=0;s<LOOP_STEPS;s++){
+  for(let s=0;s<steps;s++){
     const d = document.createElement('div');
-    d.className = "seqstep" + (chordLane[s] ? " on" : "");
+    d.className = "seqstep chord" + (chordLane[s] ? " on" : "");
     d.dataset.row = "chord";
     d.dataset.s = String(s);
     d.textContent = chordLane[s] ? chordLane[s] : "";
@@ -1050,344 +1137,271 @@ function buildSeqGrid(){
     seqGrid.appendChild(d);
   }
 
-  const labels = ["STR E↓","STR A","STR D","STR G","STR B","STR E↑"];
-  for(let r=0;r<6;r++){
+  // rows STRINGS
+  for(let st=0; st<6; st++){
     const lab = document.createElement('div');
     lab.className = "lab";
-    lab.textContent = labels[r];
+    lab.textContent = `STR ${STRING_LABELS[st]}`;
     seqGrid.appendChild(lab);
 
-    for(let s=0;s<LOOP_STEPS;s++){
-      const val = stringLanes[r][s];
+    for(let s=0;s<steps;s++){
+      const val = stringLanes[st][s];
       const d = document.createElement('div');
       d.className = "seqstep" + (val!==null ? " on" : "");
-      d.dataset.row = String(r);
+      d.dataset.row = "str";
+      d.dataset.str = String(st);
       d.dataset.s = String(s);
       d.textContent = (val!==null) ? String(val) : "";
       d.addEventListener('click', ()=>{
-        const targetString = Number(seqStringPick.value);
-        const fret = Math.max(0, Math.min(12, Number(seqFretPick.value || 0)));
-        // se clicchi una riga diversa dalla corda selezionata: aggiorna selezione corda
-        if(targetString !== r){
-          seqStringPick.value = String(r);
-        }
-        const cur = stringLanes[r][s];
-        if(cur === fret){
-          stringLanes[r][s] = null;
-          d.classList.remove('on');
-          d.textContent = "";
-        } else {
-          stringLanes[r][s] = fret;
-          d.classList.add('on');
-          d.textContent = String(fret);
-        }
+        const strIdx = Number(d.dataset.str);
+        const stepIdx = Number(d.dataset.s);
+        const wantFret = Math.max(0, Math.min(12, Number(fretPick.value || 0)));
+
+        // if editing specific string selected, only apply if matches OR allow click anyway
+        // (più comodo: click sulla griglia = quel row)
+        const current = stringLanes[strIdx][stepIdx];
+        stringLanes[strIdx][stepIdx] = (current === wantFret) ? null : wantFret;
+
+        d.classList.toggle('on', stringLanes[strIdx][stepIdx]!==null);
+        d.textContent = (stringLanes[strIdx][stepIdx]!==null) ? String(stringLanes[strIdx][stepIdx]) : "";
       });
       seqGrid.appendChild(d);
     }
   }
-}
-buildSeqGrid();
 
-/* =========================================================
-   METRONOME CLICK (scheduled)
-========================================================= */
-let metroEnabled = false;   // can be used by transport and/or practice
-const metroToggle = document.getElementById('metroToggle');
-const metroHint = document.getElementById('metroHint');
-
-function clickSoundAt(t, isAccent){
-  const ctx = ensureAudio();
-  const o = ctx.createOscillator();
-  const g = ctx.createGain();
-  o.type = 'square';
-  o.frequency.value = isAccent ? 1400 : 980;
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(isAccent ? 0.25 : 0.15, t + 0.005);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
-  o.connect(g).connect(ctx.destination);
-  o.start(t);
-  o.stop(t + 0.07);
+  seqInfo.textContent = `${steps} step = loop (${Number(loopLen.value)} battuta/e)`;
 }
 
-function setMetroEnabled(on){
-  metroEnabled = !!on;
-  metroToggle.textContent = `Metronomo: ${metroEnabled ? 'On' : 'Off'}`;
-  document.getElementById('toggleMetroInTransport').textContent = `Metronomo: ${metroEnabled ? 'On' : 'Off'}`;
-  updateTransportFlags();
-}
-metroToggle.addEventListener('click', ()=>{
-  ensureAudio();
-  setMetroEnabled(!metroEnabled);
-});
-
-/* =========================================================
-   DRUM enable toggle (Practice + Transport)
-========================================================= */
-let drumEnabled = false;
-function setDrumEnabled(on){
-  drumEnabled = !!on;
-  drumToggle.textContent = `Drum: ${drumEnabled ? 'On' : 'Off'}`;
-  document.getElementById('toggleDrumInTransport').textContent = `Drum: ${drumEnabled ? 'On' : 'Off'}`;
-  updateTransportFlags();
-}
-drumToggle.addEventListener('click', ()=>{
-  ensureAudio();
-  setDrumEnabled(!drumEnabled);
-});
-
-/* =========================================================
-   SEQ enable toggle (Studio local + Transport)
-========================================================= */
-let seqEnabled = false;
-function setSeqEnabled(on){
-  seqEnabled = !!on;
-  seqLocalToggle.textContent = `Seq: ${seqEnabled ? 'On' : 'Off'}`;
-  document.getElementById('toggleSeqInTransport').textContent = `Seq: ${seqEnabled ? 'On' : 'Off'}`;
-  updateTransportFlags();
-}
-seqLocalToggle.addEventListener('click', ()=>{
-  ensureAudio();
-  setSeqEnabled(!seqEnabled);
-});
-
-/* =========================================================
-   Loop length (16/32) affects Drum+Seq grids/data
-========================================================= */
-const loopLen = document.getElementById('loopLen');
-loopLen.addEventListener('change', ()=>{
-  const steps = Number(loopLen.value);
-  setLoopSteps(steps);
-});
-
-function setLoopSteps(steps){
-  LOOP_STEPS = (steps === 32) ? 32 : 16;
-
-  // resize drum patterns
-  pattern = {
-    K: Array(LOOP_STEPS).fill(false),
-    S: Array(LOOP_STEPS).fill(false),
-    H: Array(LOOP_STEPS).fill(false),
-  };
-  fillDefaultGroove();
-  buildDrumGrid();
-
-  // resize sequencer
-  resizeSequencer(LOOP_STEPS);
-
-  // update pills
-  drumLenPill.textContent = `${LOOP_STEPS} step`;
-  seqInfo.textContent = (LOOP_STEPS === 16) ? `16 step = 1 battuta (4/4)` : `32 step = loop 2 battute`;
-  updateTransportFlags();
-}
-
-// init loop
-setLoopSteps(16);
-
-/* =========================================================
-   Drum grid UI build + playhead
-========================================================= */
-function buildDrumGrid(){
-  stepGrid.innerHTML = "";
-  stepGrid.classList.toggle('step32', LOOP_STEPS === 32);
-
-  tracks.forEach(tr=>{
-    const lab = document.createElement('div');
-    lab.className = "lab";
-    lab.textContent = tr;
-    stepGrid.appendChild(lab);
-
-    for(let i=0;i<LOOP_STEPS;i++){
-      const d = document.createElement('div');
-      d.className = "step" + (pattern[tr][i] ? " on" : "");
-      d.dataset.tr = tr;
-      d.dataset.i = String(i);
-      d.addEventListener('click', ()=>{
-        const t = d.dataset.tr;
-        const idx = Number(d.dataset.i);
-        pattern[t][idx] = !pattern[t][idx];
-        d.classList.toggle('on', pattern[t][idx]);
-      });
-      stepGrid.appendChild(d);
-    }
-  });
-}
-function drumClearPlayhead(){
-  stepGrid.querySelectorAll('.step.playhead').forEach(el=>el.classList.remove('playhead'));
-}
-function drumPaintPlayhead(stepIndex){
-  drumClearPlayhead();
-  tracks.forEach((tr, row)=>{
-    const perRow = 1 + LOOP_STEPS;
-    const flatIndex = row * perRow + 1 + stepIndex;
-    const el = stepGrid.children[flatIndex];
-    if(el) el.classList.add('playhead');
-  });
-}
-
-/* =========================================================
-   Sequencer playhead
-========================================================= */
-function seqClearPlayhead(){
-  seqGrid.querySelectorAll('.seqstep.playhead').forEach(el=>el.classList.remove('playhead'));
-}
-function seqPaintPlayhead(stepIndex){
-  seqClearPlayhead();
-  const cols = 1 + LOOP_STEPS;
-  // chord row starts after label
-  const chordIndex = 1 + stepIndex;
-  const a = seqGrid.children[chordIndex];
-  if(a) a.classList.add('playhead');
-
-  // 6 string rows follow: each row has label + LOOP_STEPS cells
-  for(let r=0;r<6;r++){
-    const base = cols /* chord row */ + r*cols;
-    const idx = base + 1 + stepIndex;
-    const el = seqGrid.children[idx];
-    if(el) el.classList.add('playhead');
-  }
-}
-
-/* =========================================================
-   Transport: one scheduler for metro + drum + seq
-========================================================= */
-const playAll = document.getElementById('playAll');
-const stopAll = document.getElementById('stopAll');
-const transportStatus = document.getElementById('transportStatus');
-const transportFlags = document.getElementById('transportFlags');
-const toggleMetroInTransport = document.getElementById('toggleMetroInTransport');
-const toggleDrumInTransport = document.getElementById('toggleDrumInTransport');
-const toggleSeqInTransport  = document.getElementById('toggleSeqInTransport');
-
-function updateTransportFlags(){
-  transportFlags.textContent = `metro:${metroEnabled?'on':'off'} • drum:${drumEnabled?'on':'off'} • seq:${seqEnabled?'on':'off'} • ${LOOP_STEPS} step`;
-}
-updateTransportFlags();
-
-toggleMetroInTransport.addEventListener('click', ()=>{ ensureAudio(); setMetroEnabled(!metroEnabled); });
-toggleDrumInTransport.addEventListener('click', ()=>{ ensureAudio(); setDrumEnabled(!drumEnabled); });
-toggleSeqInTransport.addEventListener('click',  ()=>{ ensureAudio(); setSeqEnabled(!seqEnabled); });
-
-let transportOn = false;
-let transportStep = 0;
-let nextNoteTime = 0;
-let schedulerTimer = null;
-const LOOKAHEAD_MS = 25;
-const SCHEDULE_AHEAD_SEC = 0.14;
-let metroBeatCount = 0;
-
-function scheduleTransportStep(stepIndex, time){
-  // playheads
-  if(drumEnabled) drumPaintPlayhead(stepIndex);
-  if(seqEnabled)  seqPaintPlayhead(stepIndex);
-
-  // metronome: tick on each 1/4 note -> stepIndex % 4 == 0
-  if(metroEnabled && (stepIndex % 4 === 0)){
-    const beatInBar = metroBeatCount % beatsPerBar();
-    const isAccent = (beatInBar === 0);
-    clickSoundAt(time, isAccent);
-    metroBeatCount++;
-  }
-
-  // drum
-  if(drumEnabled){
-    if(pattern.K[stepIndex]) kick(time);
-    if(pattern.S[stepIndex]) snare(time);
-    if(pattern.H[stepIndex]) hat(time);
-  }
-
-  // sequencer: chords + strings
-  if(seqEnabled){
-    const ch = chordLane[stepIndex];
-    if(ch){
-      // aggiorna UI ma suona schedulato
-      chordSelect.value = ch;
-      renderChord(ch);
-      playChordAt(time + 0.01, ch);
-    }
-    // per ogni corda, se c'è un fret -> suona quella corda
-    for(let s=0;s<6;s++){
-      const fret = stringLanes[s][stepIndex];
-      if(fret !== null){
-        playStringAt(time + 0.01, s, fret);
-      }
-    }
-  }
-}
-
-function transportScheduler(){
-  const ctx = ensureAudio();
-  while(nextNoteTime < ctx.currentTime + SCHEDULE_AHEAD_SEC){
-    scheduleTransportStep(transportStep, nextNoteTime);
-
-    // advance step with swing on offbeats (drum feel) — apply to transport grid generally
-    const dur = stepDurSec();
-    const isOffbeat = (transportStep % 2) === 1;
-    const swingAmt = Number(swing.value || 0);
-    nextNoteTime += dur + (isOffbeat ? dur * swingAmt : 0);
-
-    transportStep = (transportStep + 1) % LOOP_STEPS;
-  }
-}
-
-function transportStart(){
-  if(transportOn) return;
-  const ctx = ensureAudio();
-  ensureDrumBus();
-  ensureGuitarBus();
-
-  transportOn = true;
-  playAll.disabled = true;
-  stopAll.disabled = false;
-
-  transportStatus.textContent = "playing…";
-  transportStatus.classList.remove('bad');
-  transportStatus.classList.add('ok');
-
-  transportStep = 0;
-  metroBeatCount = 0;
-  nextNoteTime = ctx.currentTime + 0.06;
-  schedulerTimer = setInterval(transportScheduler, LOOKAHEAD_MS);
-  seqStatus.textContent = "playing…";
-}
-
-function transportStop(){
-  transportOn = false;
-  playAll.disabled = false;
-  stopAll.disabled = true;
-
-  transportStatus.textContent = "stopped";
-  transportStatus.classList.remove('ok');
-  transportStatus.classList.add('bad');
-
-  clearInterval(schedulerTimer);
-  schedulerTimer = null;
-  drumClearPlayhead();
-  seqClearPlayhead();
-  seqStatus.textContent = "stopped";
-}
-
-playAll.addEventListener('click', transportStart);
-stopAll.addEventListener('click', transportStop);
-
-/* =========================================================
-   Seq clear/fill buttons
-========================================================= */
 seqClearChords.addEventListener('click', ()=>{
   chordLane.fill(null);
   buildSeqGrid();
 });
 seqFillChord.addEventListener('click', ()=>{
-  chordLane.fill(seqChordPick.value);
+  const steps = getLoopSteps();
+  for(let i=0;i<steps;i++) chordLane[i] = seqChordPick.value;
   buildSeqGrid();
 });
 seqClearStrings.addEventListener('click', ()=>{
-  for(let s=0;s<6;s++) stringLanes[s].fill(null);
+  stringLanes.forEach(arr => arr.fill(null));
   buildSeqGrid();
 });
 
-/* =========================================================
-   TUNER (mic + autocorrelation)
-========================================================= */
+seqToggle.addEventListener('click', ()=>{
+  seqEnabled = !seqEnabled;
+  seqToggle.textContent = seqEnabled ? "Seq: On" : "Seq: Off";
+  seqStatus.textContent = seqEnabled ? "enabled" : "disabled";
+  paintFlags();
+});
+
+/* =========================
+   Transport (GLOBAL clock)
+========================= */
+const playAll = document.getElementById('playAll');
+const stopAll = document.getElementById('stopAll');
+const transportStatus = document.getElementById('transportStatus');
+const flagsInfo = document.getElementById('flagsInfo');
+
+let transportOn = false;
+let tStep = 0;
+let nextTime = 0;
+let schedTimer = null;
+
+const lookaheadMs = 25;
+const scheduleAheadSec = 0.12;
+
+function stepDurSec(){
+  const bpmVal = Number(bpm.value || 120);
+  return (60 / bpmVal) / 4; // 16th note duration
+}
+
+function paintFlags(){
+  flagsInfo.textContent =
+    `metro:${metroEnabled?'on':'off'} • drum:${drumEnabled?'on':'off'} • seq:${seqEnabled?'on':'off'}`;
+}
+
+function scheduleDrums(stepIndex, time){
+  if(!drumEnabled) return;
+  ensureDrumBus();
+
+  const steps = getLoopSteps();
+  if(stepIndex >= steps) return;
+
+  // swing only on off-beat 16ths (odd steps)
+  const dur = stepDurSec();
+  const isOff = (stepIndex % 2) === 1;
+  const swingAmt = Number(swing.value || 0);
+  const t = time + (isOff ? dur * swingAmt : 0);
+
+  drumPaintPlayhead(stepIndex);
+
+  if(drumPattern.K[stepIndex]) kick(t);
+  if(drumPattern.S[stepIndex]) snare(t);
+  if(drumPattern.H[stepIndex]) hat(t);
+}
+
+function scheduleMetronome(stepIndex, time){
+  if(!metroEnabled) return;
+  const steps = getLoopSteps();
+  const beatsPerBar = Number(sig.value || 4);
+  const stepsPerBar = steps === 32 ? 16 : steps; // consider 1 bar = 16 steps, 2 bars = 32 steps
+  const stepsPerBeat = Math.max(1, Math.round(stepsPerBar / beatsPerBar));
+
+  const isBeat = (stepIndex % stepsPerBeat) === 0;
+  if(!isBeat) return;
+
+  // accent on first beat of each bar (step 0 and step 16 if 2 bars)
+  const isAccent = (stepIndex === 0) || (steps === 32 && stepIndex === 16);
+  clickSoundAt(time, isAccent);
+}
+
+function scheduleSeq(stepIndex, time){
+  if(!seqEnabled) return;
+
+  const steps = getLoopSteps();
+  if(stepIndex >= steps) return;
+
+  seqPaintPlayhead(stepIndex);
+
+  // chord lane
+  const ch = chordLane[stepIndex];
+  if(ch){
+    chordSelect.value = ch;
+    renderChord(ch);
+    playChordAt(time, ch);
+  }
+
+  // string lanes: collect freqs at this step, pluck in chosen strum order
+  const freqs = [];
+  for(let s=0; s<6; s++){
+    const fret = stringLanes[s][stepIndex];
+    if(fret !== null){
+      freqs.push({ string: s, freq: stringFretToFreq(s, fret) });
+    }
+  }
+  if(freqs.length){
+    const ctx = ensureAudio();
+    const busIn = ensureChordBus();
+
+    let order = freqs.slice();
+    const mode = strumSel.value;
+    // down = low→high; up = high→low; arp = slow spread
+    order.sort((a,b)=> a.string - b.string);
+    if(mode === "up") order.reverse();
+
+    const bpmVal = Number(bpm.value || 76);
+    const micro = 60 / bpmVal / 8;
+    const t0 = time + 0.001;
+
+    order.forEach((it, idx)=>{
+      const dt = (mode === "arp") ? idx * (micro*1.2) : idx * (micro*0.45);
+      pluck(ctx, it.freq, t0 + dt, busIn, 0.16);
+    });
+  }
+}
+
+function scheduleStep(stepIndex, time){
+  scheduleMetronome(stepIndex, time);
+  scheduleDrums(stepIndex, time);
+  scheduleSeq(stepIndex, time);
+}
+
+function scheduler(){
+  const ctx = ensureAudio();
+  const steps = getLoopSteps();
+
+  while(nextTime < ctx.currentTime + scheduleAheadSec){
+    scheduleStep(tStep, nextTime);
+
+    // advance
+    nextTime += stepDurSec();
+    tStep = (tStep + 1) % steps;
+  }
+}
+
+function transportStart(){
+  const ctx = ensureAudio();
+  if(transportOn) return;
+
+  transportOn = true;
+  playAll.disabled = true;
+  stopAll.disabled = false;
+  transportStatus.textContent = "playing…";
+  transportStatus.className = "pill ok";
+
+  tStep = 0;
+  nextTime = ctx.currentTime + 0.06;
+
+  schedTimer = setInterval(scheduler, lookaheadMs);
+}
+function transportStop(){
+  if(!transportOn) return;
+  transportOn = false;
+
+  clearInterval(schedTimer);
+  schedTimer = null;
+
+  transportStatus.textContent = "stopped";
+  transportStatus.className = "pill warn";
+
+  playAll.disabled = false;
+  stopAll.disabled = true;
+
+  drumClearPlayhead();
+  seqClearPlayhead();
+}
+
+playAll.addEventListener('click', transportStart);
+stopAll.addEventListener('click', transportStop);
+
+/* =========================
+   Sequencer playhead paint
+========================= */
+function seqClearPlayhead(){
+  seqGrid.querySelectorAll('.seqstep.playhead').forEach(el=>el.classList.remove('playhead'));
+}
+function seqPaintPlayhead(stepIndex){
+  seqClearPlayhead();
+  const steps = getLoopSteps();
+
+  // Layout:
+  // row0: label + steps
+  // then 6 rows strings, each label + steps
+  // total rows = 1 + 6 = 7
+  // child index for a given row r (0..6) and step s:
+  // base = r*(1+steps) + 1 + s
+  for(let r=0; r<7; r++){
+    const idx = r*(1+steps) + 1 + stepIndex;
+    const el = seqGrid.children[idx];
+    if(el) el.classList.add('playhead');
+  }
+}
+
+/* =========================
+   Loop length changes
+========================= */
+loopLen.addEventListener('change', ()=>{
+  updateLoopBadges();
+  buildDrumGrid();
+  buildSeqGrid();
+
+  // if transport is playing, keep playing: just wrap step with new length
+  if(transportOn){
+    const steps = getLoopSteps();
+    tStep = tStep % steps;
+  }
+});
+
+/* =========================
+   Initial build
+========================= */
+updateLoopBadges();
+buildDrumGrid();
+buildSeqGrid();
+paintFlags();
+
+/* =========================
+   Tuner (mic + autocorrelation)
+========================= */
 let micStream=null, analyser=null, micSource=null, rafId=null;
 const micToggle = document.getElementById('micToggle');
 const micStop = document.getElementById('micStop');
@@ -1514,9 +1528,9 @@ function micOff(){
 micToggle.addEventListener('click', micOn);
 micStop.addEventListener('click', micOff);
 
-/* =========================================================
+/* =========================
    Studio recorder (MediaRecorder)
-========================================================= */
+========================= */
 let recStream=null, mediaRecorder=null, chunks=[];
 const recStart = document.getElementById('recStart');
 const recStop = document.getElementById('recStop');
@@ -1552,14 +1566,6 @@ function stopRec(){
 }
 recStart.addEventListener('click', startRec);
 recStop.addEventListener('click', stopRec);
-
-/* =========================================================
-   Minor init
-========================================================= */
-setMetroEnabled(false);
-setDrumEnabled(false);
-setSeqEnabled(false);
-updateTransportFlags();
 </script>
 </body>
 </html>
