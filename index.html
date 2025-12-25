@@ -210,6 +210,50 @@
       border:2px solid rgba(94,234,212,.55);
       pointer-events:none;
     }
+
+    /* --- Sequencer UI (separato dalla drum) --- */
+    .seqsteps{
+      display:grid;
+      grid-template-columns: 80px repeat(16, 1fr);
+      gap: 6px;
+      align-items:center;
+      margin-top: 10px;
+    }
+    .seqsteps .lab{
+      font-size: 12px;
+      color: var(--muted);
+      text-align:right;
+      padding-right:6px;
+      user-select:none;
+      white-space: nowrap;
+    }
+    .seqstep{
+      height: 24px;
+      border-radius: 9px;
+      border:1px solid var(--bd);
+      background: rgba(255,255,255,.03);
+      cursor:pointer;
+      position:relative;
+      display:grid;
+      place-items:center;
+      font-size: 11px;
+      color: rgba(232,238,252,.92);
+      user-select:none;
+      overflow:hidden;
+    }
+    .seqstep.on{
+      border-color: rgba(94,234,212,.50);
+      background: rgba(94,234,212,.12);
+      box-shadow: 0 0 0 3px rgba(94,234,212,.06) inset;
+    }
+    .seqstep.playhead::after{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius: 11px;
+      border:2px solid rgba(96,165,250,.55);
+      pointer-events:none;
+    }
   </style>
 </head>
 <body>
@@ -244,7 +288,7 @@
             <select id="chordSelect"></select>
             <button class="btn" id="nextChord">Prossimo</button>
 
-            <!-- NEW: chord audio -->
+            <!-- chord audio -->
             <button class="btn primary" id="playChord">Play</button>
             <select id="strum">
               <option value="down">↓ down</option>
@@ -377,6 +421,35 @@
   <!-- STUDIO -->
   <section id="view-studio" class="grid hide">
     <div class="card">
+      <h2>Sequencer (accordi + note) — 1 battuta</h2>
+
+      <div class="row">
+        <label class="muted">Accordo</label>
+        <select id="seqChordPick"></select>
+        <button class="btn" id="seqClearChords">Clear</button>
+        <button class="btn" id="seqFillChord">Fill bar</button>
+
+        <label class="muted">Nota</label>
+        <select id="seqNotePick"></select>
+        <button class="btn" id="seqClearNotes">Clear</button>
+
+        <span class="pill" id="seqInfo">16 step = 1 battuta (4/4)</span>
+      </div>
+
+      <div class="hint">Clic sugli step della riga CHORD per assegnare l’accordo selezionato. Clic sulla riga NOTE per ON/OFF.</div>
+
+      <div class="seqsteps" id="seqGrid"></div>
+
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="seqPlay">Play</button>
+        <button class="btn" id="seqStop" disabled>Stop</button>
+        <span class="pill" id="seqStatus">idle</span>
+      </div>
+
+      <div class="hint">Sync con BPM. Strum usato = quello in Practice (↓/↑/arp).</div>
+    </div>
+
+    <div class="card">
       <h2>Studio (registrazione rapida)</h2>
       <div class="row">
         <button class="btn primary" id="recStart">Rec</button>
@@ -388,9 +461,9 @@
       <div style="margin-top:12px">
         <audio id="playback" controls></audio>
       </div>
-    </div>
 
-    <div class="card">
+      <hr style="border:none;border-top:1px solid var(--bd);margin:14px 0">
+
       <h2>Roadmap “GarageBand style”</h2>
       <ul class="muted" style="margin:0; padding-left: 18px; line-height:1.6">
         <li>Looper 1–2 battute con quantizzazione</li>
@@ -713,7 +786,7 @@ function playChordNow(){
   const mode = strumSel.value;
 
   const bpmVal = Number(bpm.value || 76);
-  const step = 60 / bpmVal / 8; // feel 1/8
+  const step = 60 / bpmVal / 8;
 
   let order = freqs.slice();
   if(mode === "up") order = order.reverse();
@@ -835,7 +908,6 @@ function snare(t){
   noise.start(t);
   noise.stop(t + 0.12);
 
-  // tiny body
   const o = ctx.createOscillator();
   const og = ctx.createGain();
   o.type = 'triangle';
@@ -873,14 +945,12 @@ function hat(t){
 }
 
 function stepDurationSec(){
-  // 16th note duration = quarter / 4
   const bpmVal = Number(bpm.value || 120);
-  return (60 / bpmVal) / 4;
+  return (60 / bpmVal) / 4; // 16th
 }
 
 function scheduleStep(stepIndex, time){
-  // playhead UI
-  paintPlayhead(stepIndex);
+  drumPaintPlayhead(stepIndex);
 
   if(pattern.K[stepIndex]) kick(time);
   if(pattern.S[stepIndex]) snare(time);
@@ -889,9 +959,9 @@ function scheduleStep(stepIndex, time){
 
 function nextStep(){
   const dur = stepDurationSec();
-  const isEven = (drumStep % 2) === 1; // swing on offbeats (2,4,6... in 1-based)
+  const isOffbeat = (drumStep % 2) === 1;
   const swingAmt = Number(swing.value || 0);
-  nextNoteTime += dur + (isEven ? dur * swingAmt : 0);
+  nextNoteTime += dur + (isOffbeat ? dur * swingAmt : 0);
 
   drumStep = (drumStep + 1) % 16;
 }
@@ -918,7 +988,7 @@ function drumStop(){
   drumToggle.textContent = "Start";
   clearInterval(schedulerTimer);
   schedulerTimer = null;
-  clearPlayhead();
+  drumClearPlayhead();
 }
 
 drumToggle.addEventListener('click', ()=>{
@@ -952,19 +1022,210 @@ function buildGrid(){
 }
 buildGrid();
 
-function clearPlayhead(){
-  document.querySelectorAll('.step.playhead').forEach(el=>el.classList.remove('playhead'));
+function drumClearPlayhead(){
+  stepGrid.querySelectorAll('.step.playhead').forEach(el=>el.classList.remove('playhead'));
 }
-function paintPlayhead(stepIndex){
-  clearPlayhead();
-  // mark 3 rows at the same column
+function drumPaintPlayhead(stepIndex){
+  drumClearPlayhead();
   tracks.forEach((tr, row)=>{
-    // grid index: (row * 17) + 1 + stepIndex  (because label per row)
     const flatIndex = row * 17 + 1 + stepIndex;
     const el = stepGrid.children[flatIndex];
     if(el) el.classList.add('playhead');
   });
 }
+
+/* =========================
+   Sequencer: accordi + note (16-step, 1 bar)
+========================= */
+const seqChordPick = document.getElementById('seqChordPick');
+const seqNotePick  = document.getElementById('seqNotePick');
+const seqClearChords = document.getElementById('seqClearChords');
+const seqFillChord = document.getElementById('seqFillChord');
+const seqClearNotes = document.getElementById('seqClearNotes');
+const seqGrid = document.getElementById('seqGrid');
+const seqPlay = document.getElementById('seqPlay');
+const seqStop = document.getElementById('seqStop');
+const seqStatus = document.getElementById('seqStatus');
+
+const SEQ_STEPS = 16;
+const chordLane = Array(SEQ_STEPS).fill(null);   // chord name or null
+const noteLane  = Array(SEQ_STEPS).fill(false);  // boolean for current note
+
+// chord dropdown
+Object.keys(CHORDS).forEach(k=>{
+  const o = document.createElement('option');
+  o.value = k; o.textContent = k;
+  seqChordPick.appendChild(o);
+});
+seqChordPick.value = "C";
+
+// note dropdown
+const NOTES = ["C4","D4","E4","F4","G4","A4","B4","C5","D5","E5"];
+NOTES.forEach(n=>{
+  const o = document.createElement('option');
+  o.value = n; o.textContent = n;
+  seqNotePick.appendChild(o);
+});
+seqNotePick.value = "C4";
+
+const NOTE_TO_MIDI = {C:0,"C#":1,D:2,"D#":3,E:4,F:5,"F#":6,G:7,"G#":8,A:9,"A#":10,B:11};
+function noteToFreq(name){
+  const m = name.match(/^([A-G]#?)(\d)$/);
+  if(!m) return 440;
+  const pc = m[1], oct = Number(m[2]);
+  const midi = (oct + 1)*12 + NOTE_TO_MIDI[pc];
+  return 440 * Math.pow(2, (midi - 69)/12);
+}
+function playNote(freq, t, dur=0.12){
+  const ctx = ensureAudio();
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  const lp = ctx.createBiquadFilter();
+  o.type = "sine";
+  o.frequency.setValueAtTime(freq, t);
+  lp.type = "lowpass";
+  lp.frequency.setValueAtTime(2400, t);
+
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.14, t + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+  o.connect(lp).connect(g).connect(ctx.destination);
+  o.start(t);
+  o.stop(t + dur + 0.02);
+}
+
+function buildSeqGrid(){
+  seqGrid.innerHTML = "";
+
+  // row CHORD
+  const chordLab = document.createElement('div');
+  chordLab.className = "lab";
+  chordLab.textContent = "CHORD";
+  seqGrid.appendChild(chordLab);
+
+  for(let s=0;s<SEQ_STEPS;s++){
+    const d = document.createElement('div');
+    d.className = "seqstep" + (chordLane[s] ? " on" : "");
+    d.dataset.row = "chord";
+    d.dataset.s = String(s);
+    d.textContent = chordLane[s] ? chordLane[s] : "";
+    d.addEventListener('click', ()=>{
+      const pick = seqChordPick.value;
+      chordLane[s] = (chordLane[s] === pick) ? null : pick;
+      d.classList.toggle('on', !!chordLane[s]);
+      d.textContent = chordLane[s] ? chordLane[s] : "";
+    });
+    seqGrid.appendChild(d);
+  }
+
+  // row NOTE
+  const noteLab = document.createElement('div');
+  noteLab.className = "lab";
+  noteLab.textContent = "NOTE";
+  seqGrid.appendChild(noteLab);
+
+  for(let s=0;s<SEQ_STEPS;s++){
+    const d = document.createElement('div');
+    d.className = "seqstep" + (noteLane[s] ? " on" : "");
+    d.dataset.row = "note";
+    d.dataset.s = String(s);
+    d.textContent = ""; // pulito
+    d.addEventListener('click', ()=>{
+      noteLane[s] = !noteLane[s];
+      d.classList.toggle('on', noteLane[s]);
+    });
+    seqGrid.appendChild(d);
+  }
+}
+buildSeqGrid();
+
+seqClearChords.addEventListener('click', ()=>{
+  chordLane.fill(null);
+  buildSeqGrid();
+});
+seqFillChord.addEventListener('click', ()=>{
+  chordLane.fill(seqChordPick.value);
+  buildSeqGrid();
+});
+seqClearNotes.addEventListener('click', ()=>{
+  noteLane.fill(false);
+  buildSeqGrid();
+});
+
+function seqClearPlayhead(){
+  seqGrid.querySelectorAll('.seqstep.playhead').forEach(el=>el.classList.remove('playhead'));
+}
+function seqPaintPlayhead(stepIndex){
+  seqClearPlayhead();
+  // grid layout: 2 rows * (1 label + 16 steps) = 34 children
+  // CHORD row starts at 1
+  const chordIndex = 1 + stepIndex;
+  const noteIndex  = (1 + 16) + 1 + stepIndex; // after first row label+steps, then note label, then step
+  const a = seqGrid.children[chordIndex];
+  const b = seqGrid.children[noteIndex];
+  if(a) a.classList.add('playhead');
+  if(b) b.classList.add('playhead');
+}
+
+function seqStepDur(){
+  const bpmVal = Number(bpm.value || 76);
+  return (60 / bpmVal) / 4; // 16th
+}
+
+let seqIsOn = false;
+let seqStep = 0;
+let seqNextTime = 0;
+let seqTimer = null;
+
+function seqSchedule(stepIndex, time){
+  seqPaintPlayhead(stepIndex);
+
+  const ch = chordLane[stepIndex];
+  if(ch){
+    chordSelect.value = ch;
+    renderChord(ch);
+    // suona subito, usando lo strum scelto e l’audio bus
+    playChordNow();
+  }
+
+  if(noteLane[stepIndex]){
+    const f = noteToFreq(seqNotePick.value);
+    playNote(f, time, 0.11);
+  }
+}
+
+function seqScheduler(){
+  const ctx = ensureAudio();
+  const ahead = 0.12;
+  while(seqNextTime < ctx.currentTime + ahead){
+    seqSchedule(seqStep, seqNextTime);
+    seqNextTime += seqStepDur();
+    seqStep = (seqStep + 1) % SEQ_STEPS;
+  }
+}
+
+function seqStart(){
+  const ctx = ensureAudio();
+  seqIsOn = true;
+  seqStatus.textContent = "playing…";
+  seqPlay.disabled = true;
+  seqStop.disabled = false;
+  seqStep = 0;
+  seqNextTime = ctx.currentTime + 0.06;
+  seqTimer = setInterval(seqScheduler, 25);
+}
+function seqStopFn(){
+  seqIsOn = false;
+  seqStatus.textContent = "stopped";
+  seqPlay.disabled = false;
+  seqStop.disabled = true;
+  clearInterval(seqTimer);
+  seqTimer = null;
+  seqClearPlayhead();
+}
+seqPlay.addEventListener('click', seqStart);
+seqStop.addEventListener('click', seqStopFn);
 
 /* =========================
    Tuner (mic + autocorrelation)
