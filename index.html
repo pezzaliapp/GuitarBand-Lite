@@ -526,14 +526,24 @@
 
     <div class="card">
       <h2>Studio (registrazione rapida)</h2>
+
       <div class="row">
+        <label class="muted">Sorgente</label>
+        <select id="recSource">
+          <option value="mix">MIX interno (drum+accordi+seq+metro+drone)</option>
+          <option value="mic">Microfono</option>
+        </select>
+      </div>
+
+      <div class="row" style="margin-top:10px">
         <button class="btn primary" id="recStart">Rec</button>
         <button class="btn danger" id="recStop" disabled>Stop</button>
         <span class="pill" id="recStatus">idle</span>
       </div>
+
       <div class="hint">
-        Registra dal microfono (MediaRecorder → webm/ogg). Per registrare il “mix interno” serve una versione
-        con MediaStreamDestination (posso aggiungerla).
+        <b>MIX interno</b>: registra l’audio dell’app (MediaStreamDestination) ✅<br>
+        <b>Microfono</b>: registra da mic (come prima).
       </div>
 
       <div style="margin-top:12px">
@@ -545,7 +555,7 @@
       <h2>Roadmap “GarageBand style”</h2>
       <ul class="muted" style="margin:0; padding-left: 18px; line-height:1.6">
         <li>Looper 1–2 battute con quantizzazione</li>
-        <li>Registrazione del mix interno (WebAudio → MediaStreamDestination)</li>
+        <li>Registrazione del mix interno ✅</li>
         <li>Effetti: EQ + reverb + delay</li>
         <li>Multi-track con mute/solo e mix volumi</li>
       </ul>
@@ -563,6 +573,37 @@ function ensureAudio(){
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
   return audioCtx;
+}
+
+/* =========================
+   MASTER BUS + MIX DEST (NUOVO)
+   - Tutto l'audio interno passa qui
+   - master -> speakers
+   - master -> MediaStreamDestination (registrazione mix)
+========================= */
+let masterGain = null;
+let mixDest = null;
+
+function ensureMaster(){
+  const ctx = ensureAudio();
+  if(masterGain && mixDest) return { masterGain, mixDest };
+
+  masterGain = ctx.createGain();
+  masterGain.gain.value = 0.95;
+
+  mixDest = ctx.createMediaStreamDestination();
+
+  masterGain.connect(ctx.destination);
+  masterGain.connect(mixDest);
+
+  return { masterGain, mixDest };
+}
+
+async function resumeAudioIfNeeded(){
+  const ctx = ensureAudio();
+  if(ctx.state === "suspended"){
+    try{ await ctx.resume(); }catch(e){}
+  }
 }
 
 /* =========================
@@ -599,6 +640,8 @@ const metroBtn = document.getElementById('metroToggle');
 
 function clickSoundAt(time, isAccent){
   const ctx = ensureAudio();
+  ensureMaster();
+
   const o = ctx.createOscillator();
   const g = ctx.createGain();
   o.type = 'square';
@@ -608,7 +651,9 @@ function clickSoundAt(time, isAccent){
   g.gain.exponentialRampToValueAtTime(isAccent ? 0.25 : 0.15, time + 0.005);
   g.gain.exponentialRampToValueAtTime(0.0001, time + 0.06);
 
-  o.connect(g).connect(ctx.destination);
+  // PRIMA era ctx.destination -> ora masterGain (per registrare il mix)
+  o.connect(g).connect(masterGain);
+
   o.start(time);
   o.stop(time + 0.07);
 }
@@ -628,12 +673,17 @@ const droneVol = document.getElementById('droneVol');
 
 function droneOn(){
   const ctx = ensureAudio();
+  ensureMaster();
+
   droneOsc = ctx.createOscillator();
   droneGain = ctx.createGain();
   droneOsc.type = 'sine';
   droneOsc.frequency.value = Number(droneNote.value);
   droneGain.gain.value = Number(droneVol.value);
-  droneOsc.connect(droneGain).connect(ctx.destination);
+
+  // PRIMA: -> ctx.destination
+  droneOsc.connect(droneGain).connect(masterGain);
+
   droneOsc.start();
 }
 function droneOff(){
@@ -809,6 +859,7 @@ let chordBusIn = null;
 let chordOutGain = null;
 function ensureChordBus(){
   const ctx = ensureAudio();
+  ensureMaster();
   if(chordBusIn) return chordBusIn;
 
   const comp = ctx.createDynamicsCompressor();
@@ -821,7 +872,9 @@ function ensureChordBus(){
   chordOutGain = ctx.createGain();
   chordOutGain.gain.value = 0.95;
 
-  comp.connect(chordOutGain).connect(ctx.destination);
+  // PRIMA: chordOutGain -> ctx.destination
+  comp.connect(chordOutGain).connect(masterGain);
+
   chordBusIn = comp;
   return chordBusIn;
 }
@@ -843,6 +896,7 @@ const strumSel = document.getElementById('strum');
 function playChordAt(time, chordNameOverride=null){
   const ctx = ensureAudio();
   const busIn = ensureChordBus();
+
   const name = chordNameOverride || chordSelect.value;
   const fingering = CHORDS[name]?.fingering;
   if(!fingering) return;
@@ -866,7 +920,10 @@ function playChordNow(){
   const ctx = ensureAudio();
   playChordAt(ctx.currentTime + 0.02);
 }
-playChordBtn.addEventListener('click', playChordNow);
+playChordBtn.addEventListener('click', async ()=>{
+  await resumeAudioIfNeeded();
+  playChordNow();
+});
 
 /* =========================
    Trainer: auto-change chord
@@ -929,7 +986,6 @@ const stepGrid = document.getElementById('stepGrid');
 const tracks = ["K","S","H"]; // kick, snare, hat
 let drumEnabled = true;
 
-// pattern is dynamic based on loop steps
 let drumPattern = {
   K: Array(32).fill(false),
   S: Array(32).fill(false),
@@ -940,7 +996,7 @@ let drumPattern = {
 [0,4,8,12].forEach(i=>drumPattern.K[i]=true);
 [4,12].forEach(i=>drumPattern.S[i]=true);
 [2,6,10,14].forEach(i=>drumPattern.H[i]=true);
-// second bar: slightly varied default
+// second bar
 [16,20,24,28].forEach(i=>drumPattern.K[i]=true);
 [20,28].forEach(i=>drumPattern.S[i]=true);
 [18,22,26,30].forEach(i=>drumPattern.H[i]=true);
@@ -948,10 +1004,15 @@ let drumPattern = {
 let drumMaster = null;
 function ensureDrumBus(){
   const ctx = ensureAudio();
+  ensureMaster();
   if(drumMaster) return drumMaster;
+
   drumMaster = ctx.createGain();
   drumMaster.gain.value = Number(drumVol.value || 0.65);
-  drumMaster.connect(ctx.destination);
+
+  // PRIMA: drumMaster -> ctx.destination
+  drumMaster.connect(masterGain);
+
   return drumMaster;
 }
 drumVol.addEventListener('input', ()=>{ if(drumMaster) drumMaster.gain.value = Number(drumVol.value); });
@@ -1103,12 +1164,9 @@ Object.keys(CHORDS).forEach(k=>{
 });
 seqChordPick.value = "C";
 
-function maxSteps32(){ return 32; } // storage always 32, UI shows 16/32
-let chordLane = Array(maxSteps32()).fill(null); // chord name or null
-
-// stringLanes: 6 arrays; each cell null or fret number
+function maxSteps32(){ return 32; }
+let chordLane = Array(maxSteps32()).fill(null);
 let stringLanes = Array.from({length:6}, ()=> Array(maxSteps32()).fill(null));
-
 const STRING_LABELS = ["E↓","A","D","G","B","E↑"];
 
 function buildSeqGrid(){
@@ -1116,7 +1174,6 @@ function buildSeqGrid(){
   seqGrid.style.setProperty('--nsteps', steps);
   seqGrid.innerHTML = "";
 
-  // row CHORD
   const chordLab = document.createElement('div');
   chordLab.className = "lab";
   chordLab.textContent = "CHORD";
@@ -1125,7 +1182,6 @@ function buildSeqGrid(){
   for(let s=0;s<steps;s++){
     const d = document.createElement('div');
     d.className = "seqstep chord" + (chordLane[s] ? " on" : "");
-    d.dataset.row = "chord";
     d.dataset.s = String(s);
     d.textContent = chordLane[s] ? chordLane[s] : "";
     d.addEventListener('click', ()=>{
@@ -1137,7 +1193,6 @@ function buildSeqGrid(){
     seqGrid.appendChild(d);
   }
 
-  // rows STRINGS
   for(let st=0; st<6; st++){
     const lab = document.createElement('div');
     lab.className = "lab";
@@ -1148,7 +1203,6 @@ function buildSeqGrid(){
       const val = stringLanes[st][s];
       const d = document.createElement('div');
       d.className = "seqstep" + (val!==null ? " on" : "");
-      d.dataset.row = "str";
       d.dataset.str = String(st);
       d.dataset.s = String(s);
       d.textContent = (val!==null) ? String(val) : "";
@@ -1156,12 +1210,8 @@ function buildSeqGrid(){
         const strIdx = Number(d.dataset.str);
         const stepIdx = Number(d.dataset.s);
         const wantFret = Math.max(0, Math.min(12, Number(fretPick.value || 0)));
-
-        // if editing specific string selected, only apply if matches OR allow click anyway
-        // (più comodo: click sulla griglia = quel row)
         const current = stringLanes[strIdx][stepIdx];
         stringLanes[strIdx][stepIdx] = (current === wantFret) ? null : wantFret;
-
         d.classList.toggle('on', stringLanes[strIdx][stepIdx]!==null);
         d.textContent = (stringLanes[strIdx][stepIdx]!==null) ? String(stringLanes[strIdx][stepIdx]) : "";
       });
@@ -1211,7 +1261,7 @@ const scheduleAheadSec = 0.12;
 
 function stepDurSec(){
   const bpmVal = Number(bpm.value || 120);
-  return (60 / bpmVal) / 4; // 16th note duration
+  return (60 / bpmVal) / 4; // 16th
 }
 
 function paintFlags(){
@@ -1226,7 +1276,6 @@ function scheduleDrums(stepIndex, time){
   const steps = getLoopSteps();
   if(stepIndex >= steps) return;
 
-  // swing only on off-beat 16ths (odd steps)
   const dur = stepDurSec();
   const isOff = (stepIndex % 2) === 1;
   const swingAmt = Number(swing.value || 0);
@@ -1243,13 +1292,11 @@ function scheduleMetronome(stepIndex, time){
   if(!metroEnabled) return;
   const steps = getLoopSteps();
   const beatsPerBar = Number(sig.value || 4);
-  const stepsPerBar = steps === 32 ? 16 : steps; // consider 1 bar = 16 steps, 2 bars = 32 steps
+  const stepsPerBar = steps === 32 ? 16 : steps;
   const stepsPerBeat = Math.max(1, Math.round(stepsPerBar / beatsPerBar));
-
   const isBeat = (stepIndex % stepsPerBeat) === 0;
   if(!isBeat) return;
 
-  // accent on first beat of each bar (step 0 and step 16 if 2 bars)
   const isAccent = (stepIndex === 0) || (steps === 32 && stepIndex === 16);
   clickSoundAt(time, isAccent);
 }
@@ -1262,7 +1309,6 @@ function scheduleSeq(stepIndex, time){
 
   seqPaintPlayhead(stepIndex);
 
-  // chord lane
   const ch = chordLane[stepIndex];
   if(ch){
     chordSelect.value = ch;
@@ -1270,7 +1316,6 @@ function scheduleSeq(stepIndex, time){
     playChordAt(time, ch);
   }
 
-  // string lanes: collect freqs at this step, pluck in chosen strum order
   const freqs = [];
   for(let s=0; s<6; s++){
     const fret = stringLanes[s][stepIndex];
@@ -1284,7 +1329,6 @@ function scheduleSeq(stepIndex, time){
 
     let order = freqs.slice();
     const mode = strumSel.value;
-    // down = low→high; up = high→low; arp = slow spread
     order.sort((a,b)=> a.string - b.string);
     if(mode === "up") order.reverse();
 
@@ -1311,15 +1355,15 @@ function scheduler(){
 
   while(nextTime < ctx.currentTime + scheduleAheadSec){
     scheduleStep(tStep, nextTime);
-
-    // advance
     nextTime += stepDurSec();
     tStep = (tStep + 1) % steps;
   }
 }
 
-function transportStart(){
-  const ctx = ensureAudio();
+async function transportStart(){
+  await resumeAudioIfNeeded();
+  ensureMaster();
+
   if(transportOn) return;
 
   transportOn = true;
@@ -1329,7 +1373,7 @@ function transportStart(){
   transportStatus.className = "pill ok";
 
   tStep = 0;
-  nextTime = ctx.currentTime + 0.06;
+  nextTime = audioCtx.currentTime + 0.06;
 
   schedTimer = setInterval(scheduler, lookaheadMs);
 }
@@ -1362,13 +1406,6 @@ function seqClearPlayhead(){
 function seqPaintPlayhead(stepIndex){
   seqClearPlayhead();
   const steps = getLoopSteps();
-
-  // Layout:
-  // row0: label + steps
-  // then 6 rows strings, each label + steps
-  // total rows = 1 + 6 = 7
-  // child index for a given row r (0..6) and step s:
-  // base = r*(1+steps) + 1 + s
   for(let r=0; r<7; r++){
     const idx = r*(1+steps) + 1 + stepIndex;
     const el = seqGrid.children[idx];
@@ -1383,8 +1420,6 @@ loopLen.addEventListener('change', ()=>{
   updateLoopBadges();
   buildDrumGrid();
   buildSeqGrid();
-
-  // if transport is playing, keep playing: just wrap step with new length
   if(transportOn){
     const steps = getLoopSteps();
     tStep = tStep % steps;
@@ -1471,7 +1506,7 @@ function autoCorrelate(buf, sampleRate){
 
 async function micOn(){
   try{
-    ensureAudio();
+    await resumeAudioIfNeeded();
     micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     micSource = audioCtx.createMediaStreamSource(micStream);
     analyser = audioCtx.createAnalyser();
@@ -1530,40 +1565,91 @@ micStop.addEventListener('click', micOff);
 
 /* =========================
    Studio recorder (MediaRecorder)
+   - MIC (come prima)
+   - MIX interno (NUOVO) via MediaStreamDestination
 ========================= */
 let recStream=null, mediaRecorder=null, chunks=[];
 const recStart = document.getElementById('recStart');
 const recStop = document.getElementById('recStop');
 const recStatus = document.getElementById('recStatus');
 const playback = document.getElementById('playback');
+const recSource = document.getElementById('recSource');
+
+function pickSupportedMime(){
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/ogg;codecs=opus",
+    "audio/ogg"
+  ];
+  for(const c of candidates){
+    if(window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c)) return c;
+  }
+  return "";
+}
 
 async function startRec(){
   try{
-    recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(recStream);
+    await resumeAudioIfNeeded();
     chunks = [];
-    mediaRecorder.ondataavailable = (e)=> { if(e.data.size>0) chunks.push(e.data); };
+
+    const mode = recSource.value;
+
+    if(mode === "mix"){
+      // MIX interno: niente getUserMedia
+      ensureMaster();
+      recStream = mixDest.stream;
+
+      const opts = {};
+      const mime = pickSupportedMime();
+      if(mime) opts.mimeType = mime;
+
+      mediaRecorder = new MediaRecorder(recStream, opts);
+
+    } else {
+      // MIC: come prima
+      recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      const opts = {};
+      const mime = pickSupportedMime();
+      if(mime) opts.mimeType = mime;
+
+      mediaRecorder = new MediaRecorder(recStream, opts);
+    }
+
+    mediaRecorder.ondataavailable = (e)=> { if(e.data && e.data.size>0) chunks.push(e.data); };
     mediaRecorder.onstop = ()=>{
-      const blob = new Blob(chunks, { type: mediaRecorder.mimeType });
+      const type = (mediaRecorder && mediaRecorder.mimeType) ? mediaRecorder.mimeType : "audio/webm";
+      const blob = new Blob(chunks, { type });
       playback.src = URL.createObjectURL(blob);
     };
+
     mediaRecorder.start();
-    recStatus.textContent = "recording…";
+    recStatus.textContent = (mode === "mix") ? "recording (mix)..." : "recording (mic)...";
     recStart.disabled = true;
     recStop.disabled = false;
+
   }catch(err){
-    recStatus.textContent = "errore microfono";
+    recStatus.textContent = "errore registrazione";
     console.error(err);
   }
 }
+
 function stopRec(){
   try{ mediaRecorder && mediaRecorder.stop(); }catch(e){}
-  if(recStream) recStream.getTracks().forEach(t=>t.stop());
-  recStream=null;
+  mediaRecorder = null;
+
+  // Se era MIC, chiudo le tracce. Se era MIX, NON devo stoppare nulla.
+  if(recSource.value === "mic" && recStream){
+    try{ recStream.getTracks().forEach(t=>t.stop()); }catch(e){}
+  }
+
+  recStream = null;
   recStatus.textContent = "stopped";
   recStart.disabled = false;
   recStop.disabled = true;
 }
+
 recStart.addEventListener('click', startRec);
 recStop.addEventListener('click', stopRec);
 </script>
