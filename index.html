@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>GuitarBand Lite — Trainer & Tuner</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --panel:#121826;
+      --panel2:#0f1624;
+      --txt:#e8eefc;
+      --muted:#9aa7c2;
+      --acc:#5eead4;
+      --acc2:#60a5fa;
+      --bad:#fb7185;
+      --ok:#34d399;
+      --bd: rgba(255,255,255,.08);
+      --shadow: 0 12px 40px rgba(0,0,0,.35);
+      --radius: 16px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1200px 900px at 20% 0%, #1a2440 0%, transparent 55%),
+                  radial-gradient(900px 700px at 90% 10%, #12304a 0%, transparent 60%),
+                  var(--bg);
+      color:var(--txt);
+    }
+    header{
+      position: sticky; top:0; z-index:10;
+      backdrop-filter: blur(10px);
+      background: linear-gradient(to bottom, rgba(11,15,20,.92), rgba(11,15,20,.55));
+      border-bottom:1px solid var(--bd);
+      padding: 14px 16px;
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px; min-width: 220px;
+    }
+    .logo{
+      width:38px; height:38px; border-radius:12px;
+      background: linear-gradient(135deg, rgba(94,234,212,.25), rgba(96,165,250,.18));
+      border:1px solid var(--bd);
+      box-shadow: var(--shadow);
+      display:grid; place-items:center;
+      font-weight:800; letter-spacing:.5px;
+    }
+    .title{line-height:1.1}
+    .title b{display:block; font-size:14px}
+    .title span{display:block; font-size:12px; color:var(--muted)}
+    .tabs{display:flex; gap:8px; flex-wrap:wrap}
+    .tab{
+      border:1px solid var(--bd);
+      background: rgba(18,24,38,.55);
+      padding: 8px 12px;
+      border-radius: 999px;
+      color: var(--txt);
+      font-size:13px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .tab.active{
+      border-color: rgba(94,234,212,.45);
+      background: rgba(94,234,212,.10);
+      box-shadow: 0 0 0 3px rgba(94,234,212,.08) inset;
+    }
+    main{
+      padding: 16px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 14px;
+    }
+    @media (max-width: 920px){
+      .grid{grid-template-columns:1fr}
+      .brand{min-width: unset}
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(18,24,38,.85), rgba(15,22,36,.75));
+      border:1px solid var(--bd);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .card h2{
+      margin: 0 0 10px;
+      font-size: 14px;
+      letter-spacing: .2px;
+      color: var(--txt);
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .muted{color:var(--muted); font-size:12px}
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .btn{
+      border:1px solid var(--bd);
+      background: rgba(255,255,255,.04);
+      color: var(--txt);
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      user-select:none;
+      font-weight:600;
+      font-size: 13px;
+    }
+    .btn.primary{
+      border-color: rgba(94,234,212,.45);
+      background: rgba(94,234,212,.12);
+    }
+    .btn.danger{border-color: rgba(251,113,133,.45); background: rgba(251,113,133,.10)}
+    .btn:disabled{opacity:.5; cursor:not-allowed}
+    input[type="range"]{width: 180px}
+    input[type="number"], select{
+      background: rgba(0,0,0,.18);
+      border:1px solid var(--bd);
+      color: var(--txt);
+      padding: 9px 10px;
+      border-radius: 12px;
+      outline:none;
+    }
+    .big{
+      font-size: 44px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      margin: 8px 0 0;
+    }
+    .pill{
+      padding: 6px 10px;
+      border-radius: 999px;
+      border:1px solid var(--bd);
+      background: rgba(255,255,255,.03);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .meter{
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--bd);
+      overflow:hidden;
+    }
+    .meter > i{
+      display:block;
+      height:100%;
+      width:50%;
+      background: linear-gradient(90deg, rgba(251,113,133,.9), rgba(94,234,212,.9), rgba(251,113,133,.9));
+      transform: translateX(-50%);
+    }
+    .chordBox{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items:start;
+    }
+    @media (max-width: 560px){ .chordBox{grid-template-columns:1fr} }
+    .fret{
+      width: 100%;
+      max-width: 320px;
+      border-radius: 14px;
+      border:1px solid var(--bd);
+      background: rgba(0,0,0,.18);
+      padding: 10px;
+    }
+    canvas{width:100%; height:auto; display:block}
+    .hint{
+      font-size: 12px;
+      color: var(--muted);
+      margin-top:8px;
+      line-height:1.35;
+    }
+    audio{width:100%}
+    .hide{display:none}
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">GB</div>
+    <div class="title">
+      <b>GuitarBand Lite</b>
+      <span>metronomo • accordi • tuner • rec</span>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" data-view="practice">Practice</div>
+    <div class="tab" data-view="tuner">Tuner</div>
+    <div class="tab" data-view="studio">Studio</div>
+  </div>
+</header>
+
+<main>
+  <!-- PRACTICE -->
+  <section id="view-practice" class="grid">
+    <div class="card">
+      <h2>
+        Trainer accordi
+        <span class="pill" id="trainerStatus">pronto</span>
+      </h2>
+
+      <div class="chordBox">
+        <div>
+          <div class="row">
+            <label class="muted">Accordo</label>
+            <select id="chordSelect"></select>
+            <button class="btn" id="nextChord">Prossimo</button>
+          </div>
+          <div class="big" id="chordName">—</div>
+          <div class="hint" id="chordHint">Seleziona un accordo e prova a suonarlo a tempo.</div>
+        </div>
+
+        <div class="fret">
+          <canvas id="fretCanvas" width="480" height="320"></canvas>
+          <div class="hint">Diagramma semplice (capotasto in alto). “X” = corda muta, “0” = corda a vuoto.</div>
+        </div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid var(--bd);margin:14px 0">
+
+      <div class="row">
+        <button class="btn primary" id="startTrainer">Avvia sessione</button>
+        <button class="btn" id="stopTrainer" disabled>Stop</button>
+
+        <label class="muted">Cambio ogni</label>
+        <input type="number" id="changeEvery" value="20" min="5" max="120" style="width:90px">
+        <span class="muted">sec</span>
+
+        <label class="muted">Set</label>
+        <select id="chordSet">
+          <option value="basic">Base (Em Am C G D)</option>
+          <option value="open">Open (E A D G C F Am Em Dm)</option>
+          <option value="all">Tutti</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Metronomo</h2>
+      <div class="row">
+        <button class="btn primary" id="metroToggle">Start</button>
+        <label class="muted">BPM</label>
+        <input type="range" id="bpm" min="40" max="220" value="76">
+        <input type="number" id="bpmNum" min="40" max="220" value="76" style="width:90px">
+        <label class="muted">Time</label>
+        <select id="sig">
+          <option value="4">4/4</option>
+          <option value="3">3/4</option>
+          <option value="6">6/8</option>
+        </select>
+      </div>
+      <div class="hint">Click forte sul primo battito. Ottimo per cambio accordi e strumming.</div>
+
+      <hr style="border:none;border-top:1px solid var(--bd);margin:14px 0">
+
+      <h2>Drone (tonica)</h2>
+      <div class="row">
+        <select id="droneNote">
+          <option value="110">A2 (110 Hz)</option>
+          <option value="146.83">D3 (146.83 Hz)</option>
+          <option value="196">G3 (196 Hz)</option>
+          <option value="261.63">C4 (261.63 Hz)</option>
+          <option value="329.63">E4 (329.63 Hz)</option>
+        </select>
+        <button class="btn" id="droneToggle">On/Off</button>
+        <label class="muted">Volume</label>
+        <input type="range" id="droneVol" min="0" max="1" step="0.01" value="0.18">
+      </div>
+      <div class="hint">Il drone aiuta l’orecchio: suona scale/accordi sopra una nota fissa.</div>
+    </div>
+  </section>
+
+  <!-- TUNER -->
+  <section id="view-tuner" class="grid hide">
+    <div class="card">
+      <h2>
+        Tuner (microfono)
+        <span class="pill" id="micStatus">microfono: off</span>
+      </h2>
+      <div class="row">
+        <button class="btn primary" id="micToggle">Attiva microfono</button>
+        <button class="btn" id="micStop" disabled>Disattiva</button>
+        <span class="muted">Suggerimento: pizzica una corda singola, niente accordo.</span>
+      </div>
+
+      <div style="margin-top:10px">
+        <div class="muted">Nota rilevata</div>
+        <div class="big" id="noteName">—</div>
+        <div class="row">
+          <span class="pill" id="freqRead">— Hz</span>
+          <span class="pill" id="centsRead">— cents</span>
+          <span class="pill" id="targetRead">target: —</span>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="muted">Intonazione</div>
+          <div class="meter"><i id="meterBar"></i></div>
+          <div class="hint">Al centro = in tono. A sinistra = basso, a destra = alto.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Accordatura standard (chitarra)</h2>
+      <div class="row" style="gap:8px">
+        <span class="pill">E2 82.41</span>
+        <span class="pill">A2 110.00</span>
+        <span class="pill">D3 146.83</span>
+        <span class="pill">G3 196.00</span>
+        <span class="pill">B3 246.94</span>
+        <span class="pill">E4 329.63</span>
+      </div>
+      <div class="hint">Per iniziare: accorda E2 e A2 con calma: sono le più “sensibili” al rumore.</div>
+    </div>
+  </section>
+
+  <!-- STUDIO -->
+  <section id="view-studio" class="grid hide">
+    <div class="card">
+      <h2>Studio (registrazione rapida)</h2>
+      <div class="row">
+        <button class="btn primary" id="recStart">Rec</button>
+        <button class="btn danger" id="recStop" disabled>Stop</button>
+        <span class="pill" id="recStatus">idle</span>
+      </div>
+      <div class="hint">Registra dal microfono (WAV non sempre nativo: qui usiamo MediaRecorder → webm/ogg).</div>
+
+      <div style="margin-top:12px">
+        <audio id="playback" controls></audio>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Roadmap “GarageBand style”</h2>
+      <ul class="muted" style="margin:0; padding-left: 18px; line-height:1.6">
+        <li>Looper 1–2 battute con quantizzazione</li>
+        <li>Drum machine + groove (16 step)</li>
+        <li>Effetti: EQ + reverb + delay</li>
+        <li>Multi-track con mute/solo e mix volumi</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<script>
+/* =========================
+   Audio engine basics
+========================= */
+let audioCtx = null;
+function ensureAudio(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioCtx;
+}
+
+/* =========================
+   Tabs / Views
+========================= */
+const tabs = [...document.querySelectorAll('.tab')];
+const views = {
+  practice: document.getElementById('view-practice'),
+  tuner: document.getElementById('view-tuner'),
+  studio: document.getElementById('view-studio'),
+};
+tabs.forEach(t => t.addEventListener('click', () => {
+  tabs.forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  const v = t.dataset.view;
+  Object.entries(views).forEach(([k, el]) => el.classList.toggle('hide', k !== v));
+}));
+
+/* =========================
+   Metronome
+========================= */
+let metroTimer = null;
+let metroBeat = 0;
+const metroBtn = document.getElementById('metroToggle');
+const bpm = document.getElementById('bpm');
+const bpmNum = document.getElementById('bpmNum');
+const sig = document.getElementById('sig');
+
+bpm.addEventListener('input', () => bpmNum.value = bpm.value);
+bpmNum.addEventListener('input', () => bpm.value = bpmNum.value);
+
+function clickSound(isAccent){
+  const ctx = ensureAudio();
+  const t = ctx.currentTime;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'square';
+  o.frequency.value = isAccent ? 1400 : 980;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(isAccent ? 0.25 : 0.15, t + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+  o.connect(g).connect(ctx.destination);
+  o.start(t);
+  o.stop(t + 0.07);
+}
+
+function metroStart(){
+  if(metroTimer) return;
+  ensureAudio();
+  metroBeat = 0;
+  const interval = () => (60_000 / Number(bpm.value));
+  const beatsPerBar = Number(sig.value);
+
+  const tick = () => {
+    const isAccent = (metroBeat % beatsPerBar) === 0;
+    clickSound(isAccent);
+    metroBeat++;
+  };
+  tick();
+  metroTimer = setInterval(tick, interval());
+  metroBtn.textContent = 'Stop';
+}
+function metroStop(){
+  clearInterval(metroTimer);
+  metroTimer = null;
+  metroBtn.textContent = 'Start';
+}
+metroBtn.addEventListener('click', () => metroTimer ? metroStop() : metroStart());
+
+/* =========================
+   Drone (tonic)
+========================= */
+let droneOsc=null, droneGain=null;
+const droneToggle = document.getElementById('droneToggle');
+const droneNote = document.getElementById('droneNote');
+const droneVol = document.getElementById('droneVol');
+
+function droneOn(){
+  const ctx = ensureAudio();
+  droneOsc = ctx.createOscillator();
+  droneGain = ctx.createGain();
+  droneOsc.type = 'sine';
+  droneOsc.frequency.value = Number(droneNote.value);
+  droneGain.gain.value = Number(droneVol.value);
+  droneOsc.connect(droneGain).connect(ctx.destination);
+  droneOsc.start();
+}
+function droneOff(){
+  try{ droneOsc && droneOsc.stop(); }catch(e){}
+  droneOsc=null;
+  droneGain=null;
+}
+droneToggle.addEventListener('click', ()=>{
+  if(droneOsc){ droneOff(); }
+  else { droneOn(); }
+});
+droneNote.addEventListener('change', ()=>{
+  if(droneOsc){ droneOsc.frequency.value = Number(droneNote.value); }
+});
+droneVol.addEventListener('input', ()=>{
+  if(droneGain){ droneGain.gain.value = Number(droneVol.value); }
+});
+
+/* =========================
+   Chord library + diagram
+========================= */
+const CHORDS = {
+  "Em": { fingering: ["0","2","2","0","0","0"], hint:"Em: classico, facile. Suona tutte le corde." },
+  "Am": { fingering: ["X","0","2","2","1","0"], hint:"Am: attenzione a non stoppare la 1ª corda." },
+  "C":  { fingering: ["X","3","2","0","1","0"], hint:"C: polso rilassato, dita arcuate." },
+  "G":  { fingering: ["3","2","0","0","0","3"], hint:"G: prova anche variante con 2 dita su B e high E." },
+  "D":  { fingering: ["X","X","0","2","3","2"], hint:"D: suona solo le ultime 4 corde." },
+  "E":  { fingering: ["0","2","2","1","0","0"], hint:"E: come Em ma aggiungi il 1° dito al 1° tasto della 3ª corda." },
+  "A":  { fingering: ["X","0","2","2","2","0"], hint:"A: prova a usare 3 dita o un mini barrè." },
+  "Dm": { fingering: ["X","X","0","2","3","1"], hint:"Dm: punta delle dita, non schiacciare troppo." },
+  "F":  { fingering: ["1","3","3","2","1","1"], hint:"F: barrè completo (difficile). Inizia con mini-barrè sulle prime 2 corde." },
+};
+
+const chordSelect = document.getElementById('chordSelect');
+const chordName = document.getElementById('chordName');
+const chordHint = document.getElementById('chordHint');
+const nextChord = document.getElementById('nextChord');
+const fretCanvas = document.getElementById('fretCanvas');
+const ctx2d = fretCanvas.getContext('2d');
+
+const chordSet = document.getElementById('chordSet');
+function setOptions(list){
+  chordSelect.innerHTML = "";
+  list.forEach(k=>{
+    const opt = document.createElement('option');
+    opt.value = k; opt.textContent = k;
+    chordSelect.appendChild(opt);
+  });
+}
+function getSet(){
+  const all = Object.keys(CHORDS);
+  if(chordSet.value==="basic") return ["Em","Am","C","G","D"];
+  if(chordSet.value==="open") return ["E","A","D","G","C","F","Am","Em","Dm"];
+  return all;
+}
+setOptions(getSet());
+
+chordSet.addEventListener('change', ()=>{
+  setOptions(getSet());
+  chordSelect.value = getSet()[0];
+  renderChord(chordSelect.value);
+});
+
+function renderChord(name){
+  const c = CHORDS[name];
+  chordName.textContent = name;
+  chordHint.textContent = c?.hint ?? "";
+  drawFret(c?.fingering ?? ["X","X","X","X","X","X"]);
+}
+
+function drawFret(f){
+  // f = [E6,A5,D4,G3,B2,E1] in chord charts typically from low E to high E
+  // We'll draw 6 strings vertical, 5 frets horizontal.
+  const W = fretCanvas.width, H = fretCanvas.height;
+  ctx2d.clearRect(0,0,W,H);
+
+  // bg
+  ctx2d.fillStyle = "rgba(0,0,0,.18)";
+  ctx2d.fillRect(0,0,W,H);
+
+  const pad = 42;
+  const left = pad, top = pad;
+  const right = W - pad, bottom = H - pad;
+  const strings = 6, frets = 5;
+
+  // strings
+  ctx2d.strokeStyle = "rgba(255,255,255,.25)";
+  ctx2d.lineWidth = 3;
+  for(let i=0;i<strings;i++){
+    const x = left + (right-left) * (i/(strings-1));
+    ctx2d.beginPath();
+    ctx2d.moveTo(x, top);
+    ctx2d.lineTo(x, bottom);
+    ctx2d.stroke();
+  }
+
+  // frets
+  for(let j=0;j<=frets;j++){
+    const y = top + (bottom-top) * (j/frets);
+    ctx2d.strokeStyle = (j===0) ? "rgba(255,255,255,.50)" : "rgba(255,255,255,.20)";
+    ctx2d.lineWidth = (j===0) ? 10 : 3;
+    ctx2d.beginPath();
+    ctx2d.moveTo(left, y);
+    ctx2d.lineTo(right, y);
+    ctx2d.stroke();
+  }
+
+  // markers X/0 and dots
+  ctx2d.font = "bold 24px ui-sans-serif, system-ui";
+  ctx2d.textAlign = "center";
+  ctx2d.textBaseline = "middle";
+
+  // Map: f[0]=E6 (leftmost string) ... f[5]=E1 (rightmost string)
+  for(let i=0;i<6;i++){
+    const x = left + (right-left) * (i/5);
+    const v = f[i];
+    if(v==="X" || v==="0"){
+      ctx2d.fillStyle = "rgba(255,255,255,.85)";
+      ctx2d.fillText(v, x, top - 20);
+    } else {
+      const fretNum = Number(v); // 1..?
+      const y = top + (bottom-top) * ((fretNum-0.5)/frets);
+      ctx2d.fillStyle = "rgba(94,234,212,.95)";
+      ctx2d.beginPath();
+      ctx2d.arc(x, y, 18, 0, Math.PI*2);
+      ctx2d.fill();
+      ctx2d.fillStyle = "rgba(0,0,0,.75)";
+      ctx2d.fillText(String(fretNum), x, y+1);
+    }
+  }
+}
+
+chordSelect.addEventListener('change', ()=> renderChord(chordSelect.value));
+nextChord.addEventListener('click', ()=>{
+  const list = getSet();
+  const idx = list.indexOf(chordSelect.value);
+  const next = list[(idx+1) % list.length];
+  chordSelect.value = next;
+  renderChord(next);
+});
+
+// init
+chordSelect.value = getSet()[0];
+renderChord(chordSelect.value);
+
+/* =========================
+   Trainer: auto-change chord
+========================= */
+let trainerTimer = null;
+const startTrainer = document.getElementById('startTrainer');
+const stopTrainer = document.getElementById('stopTrainer');
+const changeEvery = document.getElementById('changeEvery');
+const trainerStatus = document.getElementById('trainerStatus');
+
+function trainerStart(){
+  if(trainerTimer) return;
+  trainerStatus.textContent = "in sessione";
+  startTrainer.disabled = true;
+  stopTrainer.disabled = false;
+
+  const list = getSet();
+  const step = () => {
+    const rnd = list[Math.floor(Math.random()*list.length)];
+    chordSelect.value = rnd;
+    renderChord(rnd);
+  };
+  step();
+  trainerTimer = setInterval(step, Number(changeEvery.value)*1000);
+}
+function trainerStop(){
+  clearInterval(trainerTimer);
+  trainerTimer = null;
+  trainerStatus.textContent = "pronto";
+  startTrainer.disabled = false;
+  stopTrainer.disabled = true;
+}
+startTrainer.addEventListener('click', trainerStart);
+stopTrainer.addEventListener('click', trainerStop);
+
+/* =========================
+   Tuner (mic + autocorrelation)
+========================= */
+let micStream=null, analyser=null, micSource=null, rafId=null;
+const micToggle = document.getElementById('micToggle');
+const micStop = document.getElementById('micStop');
+const micStatus = document.getElementById('micStatus');
+const noteName = document.getElementById('noteName');
+const freqRead = document.getElementById('freqRead');
+const centsRead = document.getElementById('centsRead');
+const targetRead = document.getElementById('targetRead');
+const meterBar = document.getElementById('meterBar');
+
+const NOTE_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+function freqToNote(f){
+  const A4 = 440;
+  const n = 12 * Math.log2(f / A4) + 69;
+  const midi = Math.round(n);
+  const name = NOTE_NAMES[(midi + 1200) % 12];
+  const octave = Math.floor(midi/12) - 1;
+  const target = A4 * Math.pow(2, (midi-69)/12);
+  const cents = Math.floor(1200 * Math.log2(f/target));
+  return { midi, name, octave, target, cents };
+}
+
+function autoCorrelate(buf, sampleRate){
+  // basic autocorrelation pitch detection (good enough for MVP)
+  const SIZE = buf.length;
+  let rms = 0;
+  for(let i=0;i<SIZE;i++){ const v = buf[i]; rms += v*v; }
+  rms = Math.sqrt(rms / SIZE);
+  if(rms < 0.01) return null; // too quiet
+
+  let r1=0, r2=SIZE-1;
+  // trim edges
+  while(r1 < SIZE/2 && Math.abs(buf[r1]) < 0.01) r1++;
+  while(r2 > SIZE/2 && Math.abs(buf[r2]) < 0.01) r2--;
+
+  const trimmed = buf.slice(r1, r2);
+  const N = trimmed.length;
+  const c = new Array(N).fill(0);
+
+  for(let lag=0; lag<N; lag++){
+    let sum = 0;
+    for(let i=0; i<N-lag; i++){
+      sum += trimmed[i] * trimmed[i+lag];
+    }
+    c[lag] = sum;
+  }
+
+  let d=0;
+  while(d < N-1 && c[d] > c[d+1]) d++;
+
+  let maxVal = -1, maxPos = -1;
+  for(let i=d; i<N; i++){
+    if(c[i] > maxVal){ maxVal = c[i]; maxPos = i; }
+  }
+  if(maxPos <= 0) return null;
+
+  // parabolic interpolation
+  const x1 = c[maxPos-1] ?? 0;
+  const x2 = c[maxPos];
+  const x3 = c[maxPos+1] ?? 0;
+  const a = (x1 + x3 - 2*x2) / 2;
+  const b = (x3 - x1) / 2;
+  const shift = (a ? -b/(2*a) : 0);
+
+  const period = maxPos + shift;
+  const freq = sampleRate / period;
+  if(!isFinite(freq) || freq < 50 || freq > 1200) return null;
+  return freq;
+}
+
+async function micOn(){
+  try{
+    ensureAudio();
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    micSource = audioCtx.createMediaStreamSource(micStream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    micSource.connect(analyser);
+
+    micStatus.textContent = "microfono: on";
+    micToggle.disabled = true;
+    micStop.disabled = false;
+
+    const buf = new Float32Array(analyser.fftSize);
+    const loop = () => {
+      analyser.getFloatTimeDomainData(buf);
+      const f = autoCorrelate(buf, audioCtx.sampleRate);
+      if(f){
+        const n = freqToNote(f);
+        noteName.textContent = `${n.name}${n.octave}`;
+        freqRead.textContent = `${f.toFixed(2)} Hz`;
+        centsRead.textContent = `${n.cents} cents`;
+        targetRead.textContent = `target: ${n.target.toFixed(2)} Hz`;
+
+        // meter: clamp cents to [-50,+50]
+        const c = Math.max(-50, Math.min(50, n.cents));
+        // translate so 0 is center; our bar uses translateX(-50%) baseline, so move within +-50%
+        const pct = (c / 50) * 50; // -50..+50
+        meterBar.style.transform = `translateX(${pct-50}%)`;
+      } else {
+        noteName.textContent = "—";
+        freqRead.textContent = "— Hz";
+        centsRead.textContent = "— cents";
+        targetRead.textContent = "target: —";
+        meterBar.style.transform = `translateX(-50%)`;
+      }
+      rafId = requestAnimationFrame(loop);
+    };
+    loop();
+  } catch(err){
+    micStatus.textContent = "microfono: errore/negato";
+    console.error(err);
+  }
+}
+function micOff(){
+  if(rafId) cancelAnimationFrame(rafId);
+  rafId=null;
+  if(micStream){
+    micStream.getTracks().forEach(t=>t.stop());
+  }
+  micStream=null;
+  analyser=null;
+  micSource=null;
+
+  micStatus.textContent = "microfono: off";
+  micToggle.disabled = false;
+  micStop.disabled = true;
+}
+micToggle.addEventListener('click', micOn);
+micStop.addEventListener('click', micOff);
+
+/* =========================
+   Studio recorder (MediaRecorder)
+========================= */
+let recStream=null, mediaRecorder=null, chunks=[];
+const recStart = document.getElementById('recStart');
+const recStop = document.getElementById('recStop');
+const recStatus = document.getElementById('recStatus');
+const playback = document.getElementById('playback');
+
+async function startRec(){
+  try{
+    recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(recStream);
+    chunks = [];
+    mediaRecorder.ondataavailable = (e)=> { if(e.data.size>0) chunks.push(e.data); };
+    mediaRecorder.onstop = ()=>{
+      const blob = new Blob(chunks, { type: mediaRecorder.mimeType });
+      playback.src = URL.createObjectURL(blob);
+    };
+    mediaRecorder.start();
+    recStatus.textContent = "recording…";
+    recStart.disabled = true;
+    recStop.disabled = false;
+  }catch(err){
+    recStatus.textContent = "errore microfono";
+    console.error(err);
+  }
+}
+function stopRec(){
+  try{ mediaRecorder && mediaRecorder.stop(); }catch(e){}
+  if(recStream) recStream.getTracks().forEach(t=>t.stop());
+  recStream=null;
+  recStatus.textContent = "stopped";
+  recStart.disabled = false;
+  recStop.disabled = true;
+}
+recStart.addEventListener('click', startRec);
+recStop.addEventListener('click', stopRec);
+</script>
+</body>
+</html>
